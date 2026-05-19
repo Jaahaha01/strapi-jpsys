@@ -44,7 +44,6 @@ $RECYCLE.BIN/
 *.iso
 *.jar
 *.rar
-*.tar
 *.zip
 *.com
 *.class
@@ -121,7 +120,6 @@ coverage
 # Strapi
 ############################
 
-.env
 license.txt
 exports
 .strapi
