@@ -1,0 +1,23 @@
+{
+  "collectionName": "components_shared_it_service_items",
+  "info": {
+    "displayName": "it-service-item"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    }
+  },
+  "config": {}
+}

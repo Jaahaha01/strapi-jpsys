@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_shared_it_feature_items",
+  "info": {
+    "displayName": "it-feature-item"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "desc": {
+      "type": "string"
+    }
+  },
+  "config": {}
+}
