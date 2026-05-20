@@ -32,6 +32,48 @@ npm run build
 yarn build
 ```
 
+## Auto translate localized content
+
+This project registers a Strapi v5 Document Service middleware that runs after localized content is created or updated. It translates localized text fields into the other configured i18n locales and copies technical localized values such as URLs, emails, phone numbers, map URLs, dates, and video IDs without translating them.
+
+Configure AI translation in `.env`:
+
+```
+AUTO_TRANSLATE_ENABLED=true
+AUTO_TRANSLATE_PROVIDER=openai
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_TRANSLATE_MODEL=gpt-4.1-mini
+```
+
+Or use Google Translate:
+
+```
+AUTO_TRANSLATE_ENABLED=true
+AUTO_TRANSLATE_PROVIDER=google
+GOOGLE_TRANSLATE_API_KEY=your-google-translate-api-key
+```
+
+Or use LibreTranslate:
+
+```
+AUTO_TRANSLATE_ENABLED=true
+AUTO_TRANSLATE_PROVIDER=libretranslate
+LIBRETRANSLATE_URL=https://your-libretranslate-host
+LIBRETRANSLATE_API_KEY=optional-api-key
+```
+
+Optionally limit target locales:
+
+```
+AUTO_TRANSLATE_TARGET_LOCALES=en,ja,th
+```
+
+By default, Strapi waits for translation to finish before the save request completes. This is more reliable on free deploys. To run translation in the background instead:
+
+```
+AUTO_TRANSLATE_BACKGROUND=true
+```
+
 ## ⚙️ Deployment
 
 Strapi gives you many possible deployment options for your project including [Strapi Cloud](https://cloud.strapi.io). Browse the [deployment section of the documentation](https://docs.strapi.io/dev-docs/deployment) to find the best solution for your use case.

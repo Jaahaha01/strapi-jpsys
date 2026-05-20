@@ -1,4 +1,6 @@
 import sharp from 'sharp';
+import type { Core } from '@strapi/strapi';
+import { registerAutoTranslateMiddleware } from './utils/auto-translate';
 
 export default {
   /**
@@ -7,7 +9,9 @@ export default {
    *
    * This gives you an opportunity to extend code.
    */
-  register(/* { strapi }: { strapi: Core.Strapi } */) {},
+  register({ strapi }: { strapi: Core.Strapi }) {
+    registerAutoTranslateMiddleware({ strapi });
+  },
 
   /**
    * An asynchronous bootstrap function that runs before
@@ -25,4 +29,3 @@ export default {
     }
   },
 };
-
