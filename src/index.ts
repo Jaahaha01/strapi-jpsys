@@ -1,4 +1,4 @@
-// import type { Core } from '@strapi/strapi';
+import sharp from 'sharp';
 
 export default {
   /**
@@ -16,5 +16,13 @@ export default {
    * This gives you an opportunity to set up your data model,
    * run jobs, or perform some special logic.
    */
-  bootstrap(/* { strapi }: { strapi: Core.Strapi } */) {},
+  bootstrap(/* { strapi }: { strapi: Core.Strapi } */) {
+    if (sharp) {
+      // Limit sharp memory cache to 128MB to prevent OOM crashes on Strapi Cloud
+      sharp.cache({ memory: 128 });
+      // Force sharp to process one image at a time to reduce CPU/RAM peaks
+      sharp.concurrency(1);
+    }
+  },
 };
+
