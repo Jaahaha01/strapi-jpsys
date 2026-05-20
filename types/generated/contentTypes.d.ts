@@ -504,7 +504,7 @@ export interface ApiCompanyCompany extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     aboutTitle: Schema.Attribute.String &
@@ -521,7 +521,7 @@ export interface ApiCompanyCompany extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     heroSubtitle: Schema.Attribute.Text &
@@ -668,7 +668,7 @@ export interface ApiContactContact extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     heroSubtitle: Schema.Attribute.String &
@@ -821,7 +821,7 @@ export interface ApiETaxETax extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     definitionEtaxTitle: Schema.Attribute.String &
@@ -841,7 +841,7 @@ export interface ApiETaxETax extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     definitionSigTitle: Schema.Attribute.String &
@@ -855,7 +855,7 @@ export interface ApiETaxETax extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     heroTitle: Schema.Attribute.String &
@@ -883,7 +883,7 @@ export interface ApiETaxETax extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     mechanismTitle: Schema.Attribute.String &
@@ -897,7 +897,7 @@ export interface ApiETaxETax extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     painHeading: Schema.Attribute.String &
@@ -943,7 +943,7 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     heroCtaPrimary: Schema.Attribute.String &
@@ -1018,7 +1018,7 @@ export interface ApiItSystemItSystem extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     heroSubtitle: Schema.Attribute.String &
@@ -1084,7 +1084,7 @@ export interface ApiMarketingMarketing extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     cardWebsite: Schema.Attribute.String &
@@ -1098,7 +1098,7 @@ export interface ApiMarketingMarketing extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     cardWebsiteIcon: Schema.Attribute.Media<
@@ -1106,7 +1106,7 @@ export interface ApiMarketingMarketing extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     cardWebsiteLabel: Schema.Attribute.String &
@@ -1123,7 +1123,7 @@ export interface ApiMarketingMarketing extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     heroTitle: Schema.Attribute.String &
@@ -1233,7 +1233,7 @@ export interface ApiMyLogStarMyLogStar extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     mediaImage2: Schema.Attribute.Media<
@@ -1241,7 +1241,7 @@ export interface ApiMyLogStarMyLogStar extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     publishedAt: Schema.Attribute.DateTime;
@@ -1276,7 +1276,7 @@ export interface ApiNewReleaseNewRelease extends Struct.SingleTypeSchema {
     botImage: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     createdAt: Schema.Attribute.DateTime;
@@ -1293,7 +1293,7 @@ export interface ApiNewReleaseNewRelease extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     heroBgImage: Schema.Attribute.Media<
@@ -1301,7 +1301,7 @@ export interface ApiNewReleaseNewRelease extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
-          localized: true;
+          localized: false;
         };
       }>;
     heroSubtitle: Schema.Attribute.Text &
