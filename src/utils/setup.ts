@@ -57,6 +57,45 @@ export const setupInitialData = async ({ strapi }: { strapi: Core.Strapi }) => {
         }
       }
     }
+
+    // 3. Setup Webhooks (Optional)
+    const webhookStore = strapi.get('webhookStore');
+    if (webhookStore) {
+      const webhooks = await webhookStore.findWebhooks();
+      const webhookUrl = process.env.FRONTEND_WEBHOOK_URL;
+      const webhookSecret = process.env.FRONTEND_WEBHOOK_SECRET;
+      const webhookName = process.env.FRONTEND_WEBHOOK_NAME || 'Nextjs Clear Cache';
+
+      // Skip if URL already exists (safe for redeploy)
+      if (webhookUrl && !webhooks.find((w: any) => w.url === webhookUrl)) {
+        strapi.log.info(`Creating Webhook "${webhookName}" for: ${webhookUrl}`);
+
+        const headers: Record<string, string> = {};
+        if (webhookSecret) {
+          headers['Authorization'] = `Bearer ${webhookSecret}`;
+        }
+
+        await webhookStore.createWebhook({
+          name: webhookName,
+          url: webhookUrl,
+          headers,
+          events: [
+            'entry.create',
+            'entry.update',
+            'entry.delete',
+            'entry.publish',
+            'entry.unpublish',
+            'media.create',
+            'media.update',
+            'media.delete',
+          ],
+          isEnabled: true,
+        });
+      } else if (webhookUrl) {
+        strapi.log.info(`Webhook "${webhookName}" already exists, skipping.`);
+      }
+    }
+
   } catch (error) {
     strapi.log.error('Error in setupInitialData:', error);
   }

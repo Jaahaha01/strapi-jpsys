@@ -613,7 +613,6 @@ const syncDocumentTranslations = async (
       locale: targetLocale,
       data: translatedData,
       fields: [],
-      ...(isPublishedResult(result) ? { status: 'published' } : {}),
     } as any);
   }
 };
