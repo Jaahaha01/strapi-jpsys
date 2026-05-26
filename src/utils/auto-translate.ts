@@ -619,7 +619,8 @@ const syncDocumentTranslations = async (
   strapi: Core.Strapi,
   uid: string,
   result: any,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
+  action: string
 ) => {
   const disabledReason = getDisabledReason();
 
@@ -647,12 +648,34 @@ const syncDocumentTranslations = async (
 
   if (!documentId || !sourceLocale) return;
 
+  // IMPORTANT: Only auto-translate or auto-publish if editing the primary locale ('en').
+  // This prevents translation loops when manually editing 'th' or 'ja'.
+  const defaultLoc = await getDefaultLocale(strapi);
+  if (sourceLocale !== 'en' && sourceLocale !== defaultLoc) {
+    return;
+  }
+
   const locales = (await (strapi as any).plugin('i18n').service('locales').find()) as LocaleRecord[];
   const targetLocales = getTargetLocalesFromEnv(
     locales.map((l) => l.code).filter((l) => l !== sourceLocale)
   );
 
   if (targetLocales.length === 0) return;
+
+  if (action === 'publish') {
+    strapi.log.info(`[auto-translate] Publishing target locales for document ${documentId}`);
+    for (const targetLocale of targetLocales) {
+      try {
+        await (strapi as any).documents(uid).publish({
+          documentId,
+          locale: targetLocale,
+        } as any);
+      } catch (error) {
+        strapi.log.warn(`[auto-translate] Could not auto-publish ${targetLocale} for ${documentId}. It may not have a draft.`);
+      }
+    }
+    return;
+  }
 
   const populate = await getDeepPopulate(strapi, uid);
   const sourceDocument = await (strapi as any).documents(uid).findOne({
@@ -751,7 +774,7 @@ export const registerAutoTranslateMiddleware = ({ strapi }: { strapi: Core.Strap
     if (!['create', 'update', 'publish'].includes(context.action)) return result;
 
     const syncTranslations = () =>
-      syncDocumentTranslations(strapi, context.contentType.uid, result, params).catch((error) => {
+      syncDocumentTranslations(strapi, context.contentType.uid, result, params, context.action as string).catch((error) => {
         strapi.log.error('[auto-translate] Failed to sync localizations', error);
       });
 
