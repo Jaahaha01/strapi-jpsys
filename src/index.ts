@@ -12,6 +12,23 @@ export default {
    */
   register({ strapi }: { strapi: Core.Strapi }) {
     registerAutoTranslateMiddleware({ strapi });
+
+    // Intercept Strapi CE feature-detection endpoints that return 404 by design.
+    // The admin panel always calls these to check if EE features are available.
+    // Returning 200 with null silences browser console noise without affecting functionality.
+    (strapi as any).server.app.use(async (ctx: any, next: any) => {
+      await next();
+
+      if (
+        ctx.status === 404 &&
+        (ctx.path.startsWith('/content-manager/preview/url/') ||
+          ctx.path.startsWith('/i18n/ai-localization-jobs/') ||
+          ctx.path.startsWith('/admin/ai-feature-config'))
+      ) {
+        ctx.body = { data: null };
+        ctx.status = 200;
+      }
+    });
   },
 
   /**

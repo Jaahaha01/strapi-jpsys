@@ -17,7 +17,7 @@ const TECHNICAL_FIELD_HINTS = [
   'date',
 ];
 
-type TranslateProvider = 'google' | 'libretranslate' | 'openai';
+type TranslateProvider = 'microsoft' | 'google' | 'libretranslate' | 'mymemory' | 'deepl';
 
 let loggedDisabledReason: string | null = null;
 
@@ -53,6 +53,33 @@ type ModelSchema = {
   };
 };
 
+// ---------------------------------------------------------------------------
+// Provider detection & validation
+// ---------------------------------------------------------------------------
+
+const getProvider = (): TranslateProvider | null => {
+  const provider = process.env.AUTO_TRANSLATE_PROVIDER?.toLowerCase();
+
+  if (
+    provider === 'microsoft' ||
+    provider === 'google' ||
+    provider === 'libretranslate' ||
+    provider === 'mymemory' ||
+    provider === 'deepl'
+  ) {
+    return provider;
+  }
+
+  // Auto-detect from available keys/config
+  if (process.env.DEEPL_API_KEY) return 'deepl';
+  if (process.env.MICROSOFT_TRANSLATOR_API_KEY) return 'microsoft';
+  if (process.env.GOOGLE_TRANSLATE_API_KEY) return 'google';
+  if (process.env.LIBRETRANSLATE_URL) return 'libretranslate';
+  if (process.env.MYMEMORY_EMAIL) return 'mymemory';
+
+  return null;
+};
+
 const getDisabledReason = () => {
   const flag = process.env.AUTO_TRANSLATE_ENABLED;
 
@@ -62,14 +89,22 @@ const getDisabledReason = () => {
 
   const configuredProvider = process.env.AUTO_TRANSLATE_PROVIDER?.toLowerCase();
 
-  if (configuredProvider && !['google', 'libretranslate', 'openai'].includes(configuredProvider)) {
-    return 'AUTO_TRANSLATE_PROVIDER must be google, libretranslate, or openai';
+  if (configuredProvider && !['microsoft', 'google', 'libretranslate', 'mymemory', 'deepl'].includes(configuredProvider)) {
+    return 'AUTO_TRANSLATE_PROVIDER must be deepl, microsoft, google, libretranslate, or mymemory';
   }
 
   const provider = getProvider();
 
   if (!provider) {
-    return 'no translation provider configured';
+    return 'no translation provider configured (set DEEPL_API_KEY)';
+  }
+
+  if (provider === 'deepl' && !process.env.DEEPL_API_KEY) {
+    return 'DEEPL_API_KEY is missing';
+  }
+
+  if (provider === 'microsoft' && !process.env.MICROSOFT_TRANSLATOR_API_KEY) {
+    return 'MICROSOFT_TRANSLATOR_API_KEY is missing';
   }
 
   if (provider === 'google' && !process.env.GOOGLE_TRANSLATE_API_KEY) {
@@ -80,60 +115,36 @@ const getDisabledReason = () => {
     return 'LIBRETRANSLATE_URL is missing';
   }
 
-  if (provider === 'openai' && !process.env.OPENAI_API_KEY) {
-    return 'OPENAI_API_KEY is missing';
-  }
+  // MyMemory and DeepL work without hard requirements for auto-detection
 
   return null;
 };
 
-const isEnabled = () => {
-  return getDisabledReason() === null;
-};
+const isEnabled = () => getDisabledReason() === null;
 
-const shouldRunInBackground = () => {
-  return process.env.AUTO_TRANSLATE_BACKGROUND?.toLowerCase() === 'true';
-};
+const shouldRunInBackground = () =>
+  process.env.AUTO_TRANSLATE_BACKGROUND?.toLowerCase() === 'true';
 
-const getProvider = (): TranslateProvider | null => {
-  const provider = process.env.AUTO_TRANSLATE_PROVIDER?.toLowerCase();
+// ---------------------------------------------------------------------------
+// Field helpers
+// ---------------------------------------------------------------------------
 
-  if (provider === 'google' || provider === 'libretranslate' || provider === 'openai') {
-    return provider;
-  }
-
-  if (process.env.OPENAI_API_KEY) {
-    return 'openai';
-  }
-
-  if (process.env.GOOGLE_TRANSLATE_API_KEY) {
-    return 'google';
-  }
-
-  if (process.env.LIBRETRANSLATE_URL) {
-    return 'libretranslate';
-  }
-
-  return null;
-};
-
-const isLocalizedAttribute = (attribute?: Attribute) => {
-  return attribute?.pluginOptions?.i18n?.localized === true;
-};
+const isLocalizedAttribute = (attribute?: Attribute) =>
+  attribute?.pluginOptions?.i18n?.localized === true;
 
 const shouldTranslateString = (fieldName: string, value: string) => {
   const normalizedFieldName = fieldName.toLowerCase();
   const trimmed = value.trim();
 
-  if (!trimmed) {
-    return false;
-  }
+  if (!trimmed) return false;
 
-  if (TECHNICAL_FIELD_HINTS.some((hint) => normalizedFieldName.includes(hint))) {
-    return false;
-  }
+  if (TECHNICAL_FIELD_HINTS.some((hint) => normalizedFieldName.includes(hint))) return false;
 
-  if (/^https?:\/\//i.test(trimmed) || /^mailto:/i.test(trimmed) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+  if (
+    /^https?:\/\//i.test(trimmed) ||
+    /^mailto:/i.test(trimmed) ||
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
+  ) {
     return false;
   }
 
@@ -143,50 +154,30 @@ const shouldTranslateString = (fieldName: string, value: string) => {
 const getTargetLocalesFromEnv = (locales: string[]) => {
   const configured = process.env.AUTO_TRANSLATE_TARGET_LOCALES;
 
-  if (!configured) {
-    return locales;
-  }
+  if (!configured) return locales;
 
   const allowList = new Set(
     configured
       .split(',')
-      .map((locale) => locale.trim())
+      .map((l) => l.trim())
       .filter(Boolean)
   );
 
-  return locales.filter((locale) => allowList.has(locale));
+  return locales.filter((l) => allowList.has(l));
 };
 
-const decodeHtmlEntities = (value: string) => {
-  return value
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
-};
-
-const toTranslationLocale = (locale: string) => {
-  return locale.split('-')[0] || locale;
-};
+const toTranslationLocale = (locale: string) => locale.split('-')[0] || locale;
 
 const getMediaId = (value: unknown): unknown => {
   if (value && typeof value === 'object' && 'id' in value) {
     return (value as { id: unknown }).id;
   }
-
   return value;
 };
 
 const normalizeMediaValue = (value: unknown, attribute: Attribute) => {
-  if (value == null) {
-    return value;
-  }
-
-  if (attribute.multiple && Array.isArray(value)) {
-    return value.map(getMediaId);
-  }
-
+  if (value == null) return value;
+  if (attribute.multiple && Array.isArray(value)) return value.map(getMediaId);
   return getMediaId(value);
 };
 
@@ -204,22 +195,14 @@ const addStringForTranslation = (
   result[key] = value;
 
   if (shouldTranslateString(key, value)) {
-    refs.push({
-      holder: result,
-      key,
-      text: value,
-    });
+    refs.push({ holder: result, key, text: value });
   }
 };
 
 const buildBlocksPayload = (value: unknown, refs: TranslationRef[]): unknown => {
-  if (Array.isArray(value)) {
-    return value.map((item) => buildBlocksPayload(item, refs));
-  }
+  if (Array.isArray(value)) return value.map((item) => buildBlocksPayload(item, refs));
 
-  if (!value || typeof value !== 'object') {
-    return value;
-  }
+  if (!value || typeof value !== 'object') return value;
 
   const result: Record<string, unknown> = {};
 
@@ -228,7 +211,6 @@ const buildBlocksPayload = (value: unknown, refs: TranslationRef[]): unknown => 
       addStringForTranslation(result, key, childValue, refs);
       continue;
     }
-
     result[key] = buildBlocksPayload(childValue, refs);
   }
 
@@ -245,16 +227,12 @@ const buildPayloadForSchema = (
   const result: Record<string, unknown> = {};
 
   for (const [key, attribute] of Object.entries(schema.attributes ?? {})) {
-    if (!(key in source)) {
-      continue;
-    }
+    if (!(key in source)) continue;
 
     const value = source[key];
     const shouldInclude = includeAllFields || isLocalizedAttribute(attribute);
 
-    if (!shouldInclude) {
-      continue;
-    }
+    if (!shouldInclude) continue;
 
     if (TRANSLATABLE_TYPES.has(attribute.type ?? '')) {
       addStringForTranslation(result, key, value, refs);
@@ -291,34 +269,35 @@ const buildPayloadForSchema = (
       } else {
         result[key] = value;
       }
-
       continue;
     }
 
     if (attribute.type === 'dynamiczone' && Array.isArray(value)) {
       result[key] = value.map((item) => {
-        if (!item || typeof item !== 'object') {
-          return item;
-        }
+        if (!item || typeof item !== 'object') return item;
 
         const componentUid = (item as { __component?: string }).__component;
-        const componentSchema = componentUid ? ((strapi as any).getModel(componentUid) as ModelSchema) : null;
+        const componentSchema = componentUid
+          ? ((strapi as any).getModel(componentUid) as ModelSchema)
+          : null;
 
-        if (!componentSchema) {
-          return item;
-        }
+        if (!componentSchema) return item;
 
         return {
           __component: componentUid,
-          ...buildPayloadForSchema(strapi, componentSchema, item as Record<string, unknown>, refs, true),
+          ...buildPayloadForSchema(
+            strapi,
+            componentSchema,
+            item as Record<string, unknown>,
+            refs,
+            true
+          ),
         };
       });
       continue;
     }
 
-    if (['relation', 'password'].includes(attribute.type ?? '')) {
-      continue;
-    }
+    if (['relation', 'password'].includes(attribute.type ?? '')) continue;
 
     result[key] = value;
   }
@@ -326,49 +305,126 @@ const buildPayloadForSchema = (
   return result;
 };
 
-const translateWithGoogle = async (texts: string[], sourceLocale: string, targetLocale: string) => {
-  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
+// ---------------------------------------------------------------------------
+// Microsoft Translator — translates to MULTIPLE locales in ONE API call
+// ---------------------------------------------------------------------------
 
-  if (!apiKey) {
-    throw new Error('GOOGLE_TRANSLATE_API_KEY is required for Google Translate');
+/**
+ * Translate texts to multiple target locales in a single API call.
+ * Returns a map of locale code → translated strings array.
+ */
+const translateWithMicrosoft = async (
+  texts: string[],
+  sourceLocale: string,
+  targetLocales: string[]
+): Promise<Record<string, string[]>> => {
+  if (texts.length === 0) {
+    return Object.fromEntries(targetLocales.map((l) => [l, []]));
   }
 
-  const response = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${apiKey}`, {
+  const apiKey = process.env.MICROSOFT_TRANSLATOR_API_KEY;
+  const region = process.env.MICROSOFT_TRANSLATOR_REGION;
+
+  if (!apiKey) {
+    throw new Error('MICROSOFT_TRANSLATOR_API_KEY is required for Microsoft Translator');
+  }
+
+  const from = toTranslationLocale(sourceLocale);
+  const toParams = targetLocales.map((l) => `to=${encodeURIComponent(toTranslationLocale(l))}`).join('&');
+  const url = `https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&from=${from}&${toParams}`;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Ocp-Apim-Subscription-Key': apiKey,
+  };
+
+  if (region) {
+    headers['Ocp-Apim-Subscription-Region'] = region;
+  }
+
+  const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      q: texts,
-      source: toTranslationLocale(sourceLocale),
-      target: toTranslationLocale(targetLocale),
-      format: 'text',
-    }),
+    headers,
+    body: JSON.stringify(texts.map((text) => ({ text }))),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Microsoft Translator failed with ${response.status}: ${errorText}`);
+  }
+
+  const body = (await response.json()) as Array<{
+    translations: Array<{ text: string; to: string }>;
+  }>;
+
+  // Build result map: { 'th': ['t1', 't2', ...], 'ja': ['t1', 't2', ...] }
+  const result: Record<string, string[]> = Object.fromEntries(targetLocales.map((l) => [l, []]));
+
+  for (const item of body) {
+    for (const translation of item.translations) {
+      // Find matching locale (e.g. 'th' matches locale code 'th' or 'th-TH')
+      const locale = targetLocales.find(
+        (l) => toTranslationLocale(l) === translation.to
+      );
+      if (locale) {
+        result[locale].push(translation.text);
+      }
+    }
+  }
+
+  return result;
+};
+
+// ---------------------------------------------------------------------------
+// Google Translate (single target)
+// ---------------------------------------------------------------------------
+
+const translateWithGoogle = async (
+  texts: string[],
+  sourceLocale: string,
+  targetLocale: string
+): Promise<string[]> => {
+  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
+
+  if (!apiKey) throw new Error('GOOGLE_TRANSLATE_API_KEY is required');
+
+  const response = await fetch(
+    `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        q: texts,
+        source: toTranslationLocale(sourceLocale),
+        target: toTranslationLocale(targetLocale),
+        format: 'text',
+      }),
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`Google Translate failed with ${response.status} ${response.statusText}`);
   }
 
   const body = (await response.json()) as {
-    data?: {
-      translations?: Array<{
-        translatedText?: string;
-      }>;
-    };
+    data?: { translations?: Array<{ translatedText?: string }> };
   };
 
-  return (body.data?.translations ?? []).map((translation) =>
-    decodeHtmlEntities(translation.translatedText ?? '')
-  );
+  return (body.data?.translations ?? []).map((t) => t.translatedText ?? '');
 };
 
-const translateWithLibreTranslate = async (texts: string[], sourceLocale: string, targetLocale: string) => {
+// ---------------------------------------------------------------------------
+// LibreTranslate (single target)
+// ---------------------------------------------------------------------------
+
+const translateWithLibreTranslate = async (
+  texts: string[],
+  sourceLocale: string,
+  targetLocale: string
+): Promise<string[]> => {
   const baseUrl = process.env.LIBRETRANSLATE_URL;
 
-  if (!baseUrl) {
-    throw new Error('LIBRETRANSLATE_URL is required for LibreTranslate');
-  }
+  if (!baseUrl) throw new Error('LIBRETRANSLATE_URL is required');
 
   const endpoint = `${baseUrl.replace(/\/$/, '')}/translate`;
   const translations: string[] = [];
@@ -376,9 +432,7 @@ const translateWithLibreTranslate = async (texts: string[], sourceLocale: string
   for (const text of texts) {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         q: text,
         source: toTranslationLocale(sourceLocale),
@@ -392,151 +446,174 @@ const translateWithLibreTranslate = async (texts: string[], sourceLocale: string
       throw new Error(`LibreTranslate failed with ${response.status} ${response.statusText}`);
     }
 
-    const body = (await response.json()) as {
-      translatedText?: string;
-    };
-
+    const body = (await response.json()) as { translatedText?: string };
     translations.push(body.translatedText ?? '');
   }
 
   return translations;
 };
 
-const extractOpenAIOutputText = (body: any) => {
-  if (typeof body?.output_text === 'string') {
-    return body.output_text;
+// ---------------------------------------------------------------------------
+// MyMemory — Free, no credit card, 5000 words/day with email registration
+// ---------------------------------------------------------------------------
+
+/**
+ * MyMemory free translation API.
+ * Set MYMEMORY_EMAIL for 5000 words/day quota (vs 1000 without email).
+ * Supports TH and JA.
+ */
+const translateWithMyMemory = async (
+  texts: string[],
+  sourceLocale: string,
+  targetLocale: string
+): Promise<string[]> => {
+  const email = process.env.MYMEMORY_EMAIL ?? '';
+  const langPair = `${toTranslationLocale(sourceLocale)}|${toTranslationLocale(targetLocale)}`;
+  const translations: string[] = [];
+
+  for (const text of texts) {
+    // MyMemory has a 500-character limit per request — chunk if needed
+    const chunks: string[] = [];
+    for (let i = 0; i < text.length; i += 500) {
+      chunks.push(text.slice(i, i + 500));
+    }
+
+    const chunkResults: string[] = [];
+
+    for (const chunk of chunks) {
+      const params = new URLSearchParams({ q: chunk, langpair: langPair });
+      if (email) params.set('de', email);
+
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`MyMemory failed with ${response.status} ${response.statusText}`);
+      }
+
+      const body = (await response.json()) as {
+        responseStatus: number;
+        responseData: { translatedText: string };
+        quotaFinished?: boolean;
+      };
+
+      if (body.quotaFinished) {
+        throw new Error(
+          'MyMemory daily quota exceeded. Set MYMEMORY_EMAIL for 5x more quota, or wait until tomorrow.'
+        );
+      }
+
+      chunkResults.push(body.responseData?.translatedText ?? chunk);
+    }
+
+    translations.push(chunkResults.join(''));
   }
 
-  const message = body?.output?.find((item: any) => item?.type === 'message');
-  const outputText = message?.content?.find((item: any) => item?.type === 'output_text');
-
-  return outputText?.text;
+  return translations;
 };
 
-const translateWithOpenAI = async (texts: string[], sourceLocale: string, targetLocale: string) => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  const model = process.env.OPENAI_TRANSLATE_MODEL || 'gpt-4.1-mini';
+// ---------------------------------------------------------------------------
+// DeepL Translator — Free 500K chars/month (JA supported, TH not supported)
+// ---------------------------------------------------------------------------
 
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is required for OpenAI translation');
-  }
+/**
+ * DeepL API translation.
+ * Free tier: 500,000 characters/month — no charge within limit.
+ * Supports TH (Thai) and JA (Japanese) — sign up at deepl.com/pro-api
+ * Free API keys end with ':fx'  (e.g. abc123:fx)
+ */
+const translateWithDeepL = async (
+  texts: string[],
+  sourceLocale: string,
+  targetLocale: string
+): Promise<string[]> => {
+  const apiKey = process.env.DEEPL_API_KEY;
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
+  if (!apiKey) throw new Error('DEEPL_API_KEY is required for DeepL Translator');
+
+  // Free tier uses api-free.deepl.com, paid uses api.deepl.com
+  const isFree = apiKey.endsWith(':fx');
+  const baseUrl = isFree
+    ? 'https://api-free.deepl.com/v2/translate'
+    : 'https://api.deepl.com/v2/translate';
+
+  const response = await fetch(baseUrl, {
     method: 'POST',
     headers: {
+      Authorization: `DeepL-Auth-Key ${apiKey}`,
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model,
-      input: [
-        {
-          role: 'system',
-          content:
-            'You are an AI translation engine for website CMS content. Return JSON only. Translate naturally for business website copy. Preserve brand names, URLs, emails, phone numbers, code-like values, numbers, and formatting. Keep the output array in the exact same order and length as the input array.',
-        },
-        {
-          role: 'user',
-          content: JSON.stringify({
-            sourceLocale: toTranslationLocale(sourceLocale),
-            targetLocale: toTranslationLocale(targetLocale),
-            texts,
-          }),
-        },
-      ],
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'translation_result',
-          strict: true,
-          schema: {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              translations: {
-                type: 'array',
-                items: {
-                  type: 'string',
-                },
-              },
-            },
-            required: ['translations'],
-          },
-        },
-      },
+      text: texts,
+      source_lang: toTranslationLocale(sourceLocale).toUpperCase(),
+      target_lang: toTranslationLocale(targetLocale).toUpperCase(),
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`OpenAI translation failed with ${response.status} ${response.statusText}: ${errorText}`);
+    throw new Error(`DeepL translation failed with ${response.status}: ${errorText}`);
   }
 
-  const body = await response.json();
-  const outputText = extractOpenAIOutputText(body);
-
-  if (!outputText) {
-    throw new Error('OpenAI translation returned no output text');
-  }
-
-  const parsed = JSON.parse(outputText) as {
-    translations?: string[];
+  const body = (await response.json()) as {
+    translations: Array<{ text: string; detected_source_language: string }>;
   };
 
-  if (!Array.isArray(parsed.translations)) {
-    throw new Error('OpenAI translation returned invalid translations array');
-  }
-
-  return texts.map((text, index) => parsed.translations?.[index] ?? text);
+  return body.translations.map((t) => t.text);
 };
 
-const translateTexts = async (texts: string[], sourceLocale: string, targetLocale: string) => {
-  if (texts.length === 0) {
-    return [];
-  }
+// ---------------------------------------------------------------------------
+// Per-locale translate helper (DeepL / Google / LibreTranslate / MyMemory)
+// ---------------------------------------------------------------------------
+
+const translateTexts = async (
+  texts: string[],
+  sourceLocale: string,
+  targetLocale: string
+): Promise<string[]> => {
+  if (texts.length === 0) return [];
 
   const provider = getProvider();
 
-  if (provider === 'google') {
-    return translateWithGoogle(texts, sourceLocale, targetLocale);
-  }
+  if (provider === 'deepl') return translateWithDeepL(texts, sourceLocale, targetLocale);
+  if (provider === 'google') return translateWithGoogle(texts, sourceLocale, targetLocale);
+  if (provider === 'libretranslate') return translateWithLibreTranslate(texts, sourceLocale, targetLocale);
+  if (provider === 'mymemory') return translateWithMyMemory(texts, sourceLocale, targetLocale);
 
-  if (provider === 'libretranslate') {
-    return translateWithLibreTranslate(texts, sourceLocale, targetLocale);
-  }
-
-  if (provider === 'openai') {
-    return translateWithOpenAI(texts, sourceLocale, targetLocale);
-  }
-
-  throw new Error('AUTO_TRANSLATE_PROVIDER must be google, libretranslate, or openai');
+  throw new Error('Use translateWithMicrosoft for the microsoft provider');
 };
+
+
+// ---------------------------------------------------------------------------
+// Strapi document helpers
+// ---------------------------------------------------------------------------
 
 const getDeepPopulate = async (strapi: Core.Strapi, uid: string) => {
   const populateBuilder = (strapi as any).plugin('content-manager')?.service('populate-builder');
-
-  if (!populateBuilder) {
-    return '*';
-  }
-
+  if (!populateBuilder) return '*';
   return populateBuilder(uid).populateDeep(Infinity).build();
 };
 
-const getDefaultLocale = async (strapi: Core.Strapi) => {
-  return (strapi as any).plugin('i18n').service('locales').getDefaultLocale();
-};
+const getDefaultLocale = async (strapi: Core.Strapi) =>
+  (strapi as any).plugin('i18n').service('locales').getDefaultLocale();
 
-const getResultDocumentId = (result: any, params: Record<string, unknown>) => {
-  return result?.documentId ?? result?.entries?.[0]?.documentId ?? params.documentId;
-};
+const getResultDocumentId = (result: any, params: Record<string, unknown>) =>
+  result?.documentId ?? result?.entries?.[0]?.documentId ?? params.documentId;
 
-const getResultLocale = async (strapi: Core.Strapi, result: any, params: Record<string, unknown>) => {
-  return result?.locale ?? result?.entries?.[0]?.locale ?? params.locale ?? (await getDefaultLocale(strapi));
-};
+const getResultLocale = async (
+  strapi: Core.Strapi,
+  result: any,
+  params: Record<string, unknown>
+) =>
+  result?.locale ??
+  result?.entries?.[0]?.locale ??
+  params.locale ??
+  (await getDefaultLocale(strapi));
 
-const isPublishedResult = (result: any) => {
-  return Boolean(result?.publishedAt ?? result?.entries?.[0]?.publishedAt);
-};
+// ---------------------------------------------------------------------------
+// Main sync function
+// ---------------------------------------------------------------------------
 
 const syncDocumentTranslations = async (
   strapi: Core.Strapi,
@@ -551,32 +628,31 @@ const syncDocumentTranslations = async (
       strapi.log.warn(`[auto-translate] Disabled: ${disabledReason}`);
       loggedDisabledReason = disabledReason;
     }
-
     return;
   }
 
   const schema = (strapi as any).getModel(uid) as ModelSchema;
   const i18nContentTypes = (strapi as any).plugin('i18n')?.service('content-types');
 
-  if (!schema || schema.pluginOptions?.i18n?.localized !== true || !i18nContentTypes?.isLocalizedContentType(schema)) {
+  if (
+    !schema ||
+    schema.pluginOptions?.i18n?.localized !== true ||
+    !i18nContentTypes?.isLocalizedContentType(schema)
+  ) {
     return;
   }
 
   const documentId = getResultDocumentId(result, params);
   const sourceLocale = await getResultLocale(strapi, result, params);
 
-  if (!documentId || !sourceLocale) {
-    return;
-  }
+  if (!documentId || !sourceLocale) return;
 
   const locales = (await (strapi as any).plugin('i18n').service('locales').find()) as LocaleRecord[];
   const targetLocales = getTargetLocalesFromEnv(
-    locales.map((locale) => locale.code).filter((locale) => locale !== sourceLocale)
+    locales.map((l) => l.code).filter((l) => l !== sourceLocale)
   );
 
-  if (targetLocales.length === 0) {
-    return;
-  }
+  if (targetLocales.length === 0) return;
 
   const populate = await getDeepPopulate(strapi, uid);
   const sourceDocument = await (strapi as any).documents(uid).findOne({
@@ -585,37 +661,78 @@ const syncDocumentTranslations = async (
     populate,
   } as any);
 
-  if (!sourceDocument) {
-    return;
-  }
+  if (!sourceDocument) return;
 
-  for (const targetLocale of targetLocales) {
-    const translationRefs: TranslationRef[] = [];
-    const translatedData = buildPayloadForSchema(
-      strapi,
-      schema,
-      sourceDocument as Record<string, unknown>,
-      translationRefs
-    );
-    const translatedTexts = await translateTexts(
-      translationRefs.map((ref) => ref.text),
-      sourceLocale,
-      targetLocale
-    );
+  const provider = getProvider();
 
-    translationRefs.forEach((ref, index) => {
-      ref.holder[ref.key] = translatedTexts[index] ?? ref.text;
-    });
+  if (provider === 'microsoft') {
+    // ─── Microsoft: ONE API call for all target locales ──────────────────────
+    const masterRefs: TranslationRef[] = [];
+    // Build payload once just to collect the texts to translate
+    buildPayloadForSchema(strapi, schema, sourceDocument as Record<string, unknown>, masterRefs);
 
-    await (strapi as any).documents(uid).update({
-      [INTERNAL_UPDATE_PARAM]: true,
-      documentId,
-      locale: targetLocale,
-      data: translatedData,
-      fields: [],
-    } as any);
+    const texts = masterRefs.map((r) => r.text);
+
+    const allTranslations = await translateWithMicrosoft(texts, sourceLocale, targetLocales);
+
+    for (const targetLocale of targetLocales) {
+      // Build a fresh payload for each locale so refs point to unique objects
+      const localeRefs: TranslationRef[] = [];
+      const localeData = buildPayloadForSchema(
+        strapi,
+        schema,
+        sourceDocument as Record<string, unknown>,
+        localeRefs
+      );
+
+      const localeTexts = allTranslations[targetLocale] ?? [];
+      localeRefs.forEach((ref, index) => {
+        ref.holder[ref.key] = localeTexts[index] ?? ref.text;
+      });
+
+      await (strapi as any).documents(uid).update({
+        [INTERNAL_UPDATE_PARAM]: true,
+        documentId,
+        locale: targetLocale,
+        data: localeData,
+        fields: [],
+      } as any);
+    }
+  } else {
+    // ─── Google / LibreTranslate: one call per locale ────────────────────────
+    for (const targetLocale of targetLocales) {
+      const translationRefs: TranslationRef[] = [];
+      const translatedData = buildPayloadForSchema(
+        strapi,
+        schema,
+        sourceDocument as Record<string, unknown>,
+        translationRefs
+      );
+
+      const translatedTexts = await translateTexts(
+        translationRefs.map((r) => r.text),
+        sourceLocale,
+        targetLocale
+      );
+
+      translationRefs.forEach((ref, index) => {
+        ref.holder[ref.key] = translatedTexts[index] ?? ref.text;
+      });
+
+      await (strapi as any).documents(uid).update({
+        [INTERNAL_UPDATE_PARAM]: true,
+        documentId,
+        locale: targetLocale,
+        data: translatedData,
+        fields: [],
+      } as any);
+    }
   }
 };
+
+// ---------------------------------------------------------------------------
+// Middleware registration
+// ---------------------------------------------------------------------------
 
 export const registerAutoTranslateMiddleware = ({ strapi }: { strapi: Core.Strapi }) => {
   if (isEnabled()) {
@@ -627,15 +744,11 @@ export const registerAutoTranslateMiddleware = ({ strapi }: { strapi: Core.Strap
   strapi.documents.use(async (context, next) => {
     const params = context.params as Record<string, unknown>;
 
-    if (params?.[INTERNAL_UPDATE_PARAM]) {
-      return next();
-    }
+    if (params?.[INTERNAL_UPDATE_PARAM]) return next();
 
     const result = await next();
 
-    if (!['create', 'update', 'publish'].includes(context.action)) {
-      return result;
-    }
+    if (!['create', 'update', 'publish'].includes(context.action)) return result;
 
     const syncTranslations = () =>
       syncDocumentTranslations(strapi, context.contentType.uid, result, params).catch((error) => {
