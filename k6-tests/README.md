@@ -56,11 +56,27 @@ k6 run --vus 1 --duration 15s k6-tests/load-test.js
 
 ### ขั้นตอนที่ 3 — Full Load Test (10 → 50 → 100 VUs)
 ```powershell
-# รันพร้อม export ผลเป็น JSON
-k6 run --out json=k6-tests/results.json k6-tests/load-test.js
+# รันแยก 3 รอบ เพื่อเอาไปเปรียบเทียบ/ทำกราฟ
+k6 run --env TEST_MODE=single --env SCENARIO_VUS=10 k6-tests/load-test.js
+k6 run --env TEST_MODE=single --env SCENARIO_VUS=50 k6-tests/load-test.js
+k6 run --env TEST_MODE=single --env SCENARIO_VUS=100 k6-tests/load-test.js
 
 # หรือส่ง API Token ผ่าน env variable
-k6 run --env API_TOKEN=your_token_here --out json=k6-tests/results.json k6-tests/load-test.js
+k6 run --env TEST_MODE=single --env SCENARIO_VUS=100 --env API_TOKEN=your_token_here k6-tests/load-test.js
+```
+
+### ขั้นตอนที่ 4 — Stage Test แบบไต่โหลด
+```powershell
+k6 run --env TEST_MODE=stage k6-tests/load-test.js
+```
+
+> หมายเหตุ: ถ้าใช้ `npm run dev` ของ Strapi ไม่ควรใช้ `--out json=k6-tests/results.json`
+> เพราะ k6 จะเขียนไฟล์ตลอดเวลาระหว่างทดสอบ ทำให้ Strapi dev watcher reload server กลางคันได้
+> ให้ใช้ไฟล์ summary ที่ script สร้างหลังจบรอบแทน
+
+### ขั้นตอนที่ 5 — สร้างรายงานรวมสำหรับ Google Sheets
+```powershell
+node k6-tests/build-report.mjs
 ```
 
 ---
@@ -79,18 +95,22 @@ k6 run --env API_TOKEN=your_token_here --out json=k6-tests/results.json k6-tests
 
 ## 📈 Load Profile
 
+### Single Mode
 | ช่วง | VUs | Duration |
 |------|-----|----------|
-| Ramp up | 0 → 10 | 30s |
-| Steady | 10 | 60s |
-| Cool down | 10 → 0 | 15s |
-| Ramp up | 0 → 50 | 30s |
-| Steady | 50 | 60s |
-| Cool down | 50 → 0 | 15s |
-| Ramp up | 0 → 100 | 30s |
-| Steady | 100 | 60s |
-| Cool down | 100 → 0 | 30s |
-| **รวม** | | **~5 min 30 sec** |
+| Ramp up | 0 → VUs ที่เลือก | 10s |
+| Steady | VUs ที่เลือก | 60s |
+| Cool down | VUs ที่เลือก → 0 | 10s |
+| **รวมต่อรอบ** | | **~1 min 20 sec** |
+
+### Stage Mode
+| ช่วง | จาก → ถึง | Duration |
+|------|-----------|----------|
+| Ramp 1 | 0 → 10 | 1m |
+| Ramp 2 | 10 → 50 | 2m |
+| Ramp 3 | 50 → 100 | 3m |
+| Cool down | 100 → 0 | 1m |
+| **รวม** | | **~7 min** |
 
 ---
 
@@ -109,21 +129,30 @@ k6 run --env API_TOKEN=your_token_here --out json=k6-tests/results.json k6-tests
 ## 📋 Google Sheets — วิธี Import ผล
 
 1. เปิด Google Sheets ใหม่
-2. สร้าง 3 แท็บ: **Raw Data**, **Graphs**, **ข้อเสนอแนะ**
-3. Copy ตาราง CSV ที่ console แสดงหลังรันเสร็จ → Paste ใน Raw Data
-4. สร้าง Chart: Insert → Chart → Bar chart
-   - X-axis: Endpoint
-   - Series: p95, Avg
+2. Import `results/k6/report-overall.csv` สำหรับกราฟภาพรวม 10, 50, 100 VUs
+3. Import `results/k6/report-endpoints.csv` สำหรับกราฟแยก endpoint
+4. สร้าง Chart:
+   - X-axis: `vus`
+   - Series: `avg_ms`, `p95_ms`, `requests_per_second`
+   - Breakdown สำหรับ endpoint: `method` + `endpoint`
+5. ถ้าจะดู stage test ให้ใช้ `results/k6/results-stage-summary.json` และ `results/k6/results-stage.csv`
 
 ---
 
 ## 📁 ไฟล์ที่เกี่ยวข้อง
 
 ```
-k6-tests/
+results/k6/
 ├── config.js              ← ค่า config, token, stages
 ├── load-test.js           ← script หลัก
 ├── README.md              ← ไฟล์นี้
-└── results.json           ← ผลลัพธ์ (สร้างหลังรัน)
-└── results-summary.json   ← สรุป JSON (สร้างหลังรัน)
+├── build-report.mjs       ← รวมผล 10/50/100 เป็น CSV + Markdown
+├── results-10vus.csv      ← endpoint summary ของ 10 VUs
+├── results-50vus.csv      ← endpoint summary ของ 50 VUs
+├── results-100vus.csv     ← endpoint summary ของ 100 VUs
+├── results-stage-summary.json ← raw summary ของ stage test
+├── results-stage.csv      ← endpoint summary ของ stage test
+├── report-overall.csv     ← ตารางรวมสำหรับกราฟภาพรวม
+├── report-endpoints.csv   ← ตารางรวมสำหรับกราฟราย endpoint
+└── LOAD_TEST_SUMMARY.md   ← สรุปผลและข้อเสนอแนะ
 ```

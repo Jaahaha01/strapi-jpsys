@@ -10,15 +10,16 @@
 //   [5] POST /api/auth/local
 //
 // วิธีรัน:
-//   k6 run --out json=results.json k6-tests/load-test.js
-//   k6 run --env API_TOKEN=xxxx --out json=results.json k6-tests/load-test.js
+//   k6 run --env TEST_MODE=stage k6-tests/load-test.js
+//   k6 run --env SCENARIO_VUS=10 k6-tests/load-test.js
+//   k6 run --env SCENARIO_VUS=50 k6-tests/load-test.js
+//   k6 run --env SCENARIO_VUS=100 k6-tests/load-test.js
 // ============================================================
 
 import http    from 'k6/http';
 import { check, sleep, group } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
-import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
-import { BASE_URL, API_TOKEN, TEST_USER, THRESHOLDS, STAGES } from './config.js';
+import { BASE_URL, API_TOKEN, TEST_USER, THRESHOLDS, STAGES, SCENARIO_NAME, SCENARIO_VUS, TEST_MODE } from './config.js';
 
 // ============================================================
 // Custom Metrics — แยกวัดแต่ละ endpoint
@@ -38,6 +39,7 @@ const authSuccessCounter   = new Counter('auth_success_total');
 // ============================================================
 export const options = {
   stages: STAGES,
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)'],
   thresholds: {
     ...THRESHOLDS,
     // แยก threshold ต่อ endpoint
@@ -196,7 +198,7 @@ export function handleSummary(data) {
   const metrics = data.metrics;
 
   const rows = [
-    ['Endpoint', 'Avg (ms)', 'Min (ms)', 'Med (ms)', 'p90 (ms)', 'p95 (ms)', 'Max (ms)', 'Requests', 'Failures'],
+    ['VUs', 'Endpoint', 'Avg (ms)', 'Min (ms)', 'Med (ms)', 'p90 (ms)', 'p95 (ms)', 'Max (ms)', 'Requests', 'Failures'],
   ];
 
   const endpointMap = {
@@ -227,6 +229,7 @@ export function handleSummary(data) {
     }
 
     rows.push([
+      SCENARIO_VUS,
       label,
       v.avg  ? v.avg.toFixed(2)  : '-',
       v.min  ? v.min.toFixed(2)  : '-',
@@ -243,7 +246,7 @@ export function handleSummary(data) {
   const csv = rows.map(r => r.join(',')).join('\n');
 
   console.log('\n============================================================');
-  console.log('📊 LOAD TEST SUMMARY (Copy ไปวางใน Google Sheets)');
+  console.log(`LOAD TEST SUMMARY (${SCENARIO_NAME}) - Copy to Google Sheets`);
   console.log('============================================================');
   console.log(csv);
   console.log('============================================================\n');
@@ -253,13 +256,27 @@ export function handleSummary(data) {
   const avgDuration = metrics.http_req_duration?.values?.avg || 0;
   const p95Duration = metrics.http_req_duration?.values?.['p(95)'] || 0;
 
-  console.log(`✅ Total Requests : ${totalReqs}`);
-  console.log(`⚡ Avg Duration   : ${avgDuration.toFixed(2)} ms`);
-  console.log(`📈 p95 Duration   : ${p95Duration.toFixed(2)} ms`);
-  console.log(`❌ Error Rate     : ${(errorRateVal * 100).toFixed(2)} %`);
+  console.log(`Total Requests : ${totalReqs}`);
+  console.log(`Avg Duration   : ${avgDuration.toFixed(2)} ms`);
+  console.log(`p95 Duration   : ${p95Duration.toFixed(2)} ms`);
+  console.log(`Error Rate     : ${(errorRateVal * 100).toFixed(2)} %`);
+
+  const summaryText = [
+    `k6 Load Test Summary - ${SCENARIO_NAME}`,
+    '',
+    `Test mode: ${TEST_MODE}`,
+    `Total requests: ${totalReqs}`,
+    `Average duration: ${avgDuration.toFixed(2)} ms`,
+    `p95 duration: ${p95Duration.toFixed(2)} ms`,
+    `Custom error rate: ${(errorRateVal * 100).toFixed(2)} %`,
+    '',
+    csv,
+    '',
+  ].join('\n');
 
   return {
-    'k6-tests/results-summary.json': JSON.stringify(data, null, 2),
-    stdout: textSummary(data, { indent: ' ', enableColors: true }),
+    [`results/k6/results-${SCENARIO_NAME}-summary.json`]: JSON.stringify(data, null, 2),
+    [`results/k6/results-${SCENARIO_NAME}.csv`]: csv,
+    stdout: summaryText,
   };
 }

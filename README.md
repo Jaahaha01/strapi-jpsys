@@ -1,104 +1,206 @@
-# 🚀 Getting started with Strapi
+# Strapi JpSys
 
-Strapi comes with a full featured [Command Line Interface](https://docs.strapi.io/dev-docs/cli) (CLI) which lets you scaffold and manage your project in seconds.
+Strapi v5 project for the JpSys internship. This repo serves localized content pages, auto-translates supported fields, and includes dedicated load and end-to-end test suites.
 
-### `develop`
+## Quick Start
 
-Start your Strapi application with autoReload enabled. [Learn more](https://docs.strapi.io/dev-docs/cli#strapi-develop)
+1. Copy `.env.example` to `.env` and fill in the secrets you need.
+2. Install dependencies with `npm install`.
+3. Start the local app with `npm run dev`.
+4. Open `http://localhost:1337/admin`.
 
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start Strapi in development mode. |
+| `npm run develop` | Alias for `npm run dev`. |
+| `npm run start` | Start Strapi in production mode. |
+| `npm run build` | Build the admin panel. |
+| `npm run console` | Open the Strapi console. |
+| `npm run deploy` | Deploy with Strapi Cloud tooling. |
+| `npm run upgrade` | Upgrade to the latest Strapi version. |
+| `npm run upgrade:dry` | Preview an upgrade without changing files. |
+
+## Repository Layout
+
+| Path | Purpose |
+| --- | --- |
+| `src/` | App code, content types, bootstrap logic, and utilities. |
+| `config/` | Strapi runtime configuration. |
+| `database/` | Database-related configuration and generated data. |
+| `docs/` | Report generation scripts and source docs. |
+| `e2e-tests/` | Playwright test project. |
+| `k6-tests/` | k6 load test project and report generator. |
+| `results/` | Generated outputs for docs, k6, and Playwright. Ignored by git. |
+| `public/` | Public assets served by Strapi. |
+| `dist/` | Build output. |
+
+## What This App Does
+
+- Creates the locales `en`, `th`, and `ja` during bootstrap.
+- Grants public `find` and `findOne` permissions for API content types.
+- Registers an auto-translation middleware for localized documents.
+- Silences a few Strapi admin feature-detection 404s so the browser console stays clean.
+- Caps `sharp` memory and concurrency during bootstrap to reduce image-processing spikes.
+
+## Content Model
+
+All content types in `src/api` are `singleType`, localized, and draft-and-publish enabled.
+
+| Content type | Display name | Main idea |
+| --- | --- | --- |
+| `company` | Company | Company hero, about, and info sections. |
+| `contact` | Contact | Contact form copy and office contact details. |
+| `e-tax` | ETax | E-tax landing page content, benefits, pricing, and explanatory sections. |
+| `homepage` | Homepage | Home hero content and service items. |
+| `it-system` | ItSystem | IT products, service items, and features. |
+| `marketing` | Marketing | Marketing landing content, cards, and social icons. |
+| `my-log-star` | MyLogStar | Hero content, video, feature blocks, and accordion items. |
+| `new-release` | New Release | Release/news content with cards and supporting copy. |
+
+Shared repeatable structures live in `src/components/shared/`.
+
+## Runtime Behavior
+
+### Bootstrap
+
+`src/utils/setup.ts` runs during bootstrap and:
+
+- Adds the locales `en`, `th`, and `ja` if they do not already exist.
+- Grants public read access for every `api::` content type.
+- Optionally creates a webhook when these env vars are set:
+  - `FRONTEND_WEBHOOK_URL`
+  - `FRONTEND_WEBHOOK_SECRET`
+  - `FRONTEND_WEBHOOK_NAME`
+
+### Auto Translation
+
+`src/utils/auto-translate.ts` runs after localized documents are created, updated, or published.
+
+Supported providers in the current code:
+
+- Microsoft Translator
+- Google Translate
+- LibreTranslate
+- MyMemory
+- DeepL
+
+Useful env vars:
+
+- `AUTO_TRANSLATE_ENABLED`
+- `AUTO_TRANSLATE_PROVIDER`
+- `AUTO_TRANSLATE_TARGET_LOCALES`
+- `AUTO_TRANSLATE_BACKGROUND`
+- `MICROSOFT_TRANSLATOR_API_KEY`
+- `MICROSOFT_TRANSLATOR_REGION`
+- `GOOGLE_TRANSLATE_API_KEY`
+- `LIBRETRANSLATE_URL`
+- `LIBRETRANSLATE_API_KEY`
+- `MYMEMORY_EMAIL`
+- `DEEPL_API_KEY`
+
+The middleware translates localized `string`, `text`, and `richtext` fields, skips technical fields such as URLs and emails, and leaves media, relations, and passwords alone.
+
+Note: the current runtime code does not use `OPENAI_API_KEY`.
+
+## Testing
+
+### k6 Load Testing
+
+The k6 suite lives in `k6-tests/` and supports two modes:
+
+- `TEST_MODE=single` for separate `10`, `50`, and `100` VU comparisons
+- `TEST_MODE=stage` for a ramp profile from `0 -> 10 -> 50 -> 100 -> 0`
+
+Common commands:
+
+```powershell
+k6 run --env TEST_MODE=single --env SCENARIO_VUS=10 k6-tests/load-test.js
+k6 run --env TEST_MODE=single --env SCENARIO_VUS=50 k6-tests/load-test.js
+k6 run --env TEST_MODE=single --env SCENARIO_VUS=100 k6-tests/load-test.js
+k6 run --env TEST_MODE=stage k6-tests/load-test.js
+node k6-tests/build-report.mjs
 ```
-npm run develop
-# or
-yarn develop
+
+Relevant env vars:
+
+- `BASE_URL`
+- `API_TOKEN`
+- `TEST_EMAIL`
+- `TEST_PASSWORD`
+- `TEST_MODE`
+- `SCENARIO_VUS`
+
+Outputs are written to `results/k6/`, including:
+
+- `report-overall.csv`
+- `report-endpoints.csv`
+- `LOAD_TEST_SUMMARY.md`
+- `LOAD_TEST_STAGE_SUMMARY.md`
+- `results-*.csv`
+- `results-*-summary.json`
+
+### Playwright E2E
+
+The Playwright project lives in `e2e-tests/`.
+
+Configured browser projects:
+
+- Chromium
+- Firefox
+- WebKit
+
+Run it from the project folder:
+
+```powershell
+cd e2e-tests
+npx playwright test
 ```
 
-### `start`
+Useful variations:
 
-Start your Strapi application with autoReload disabled. [Learn more](https://docs.strapi.io/dev-docs/cli#strapi-start)
-
-```
-npm run start
-# or
-yarn start
+```powershell
+cd e2e-tests
+npx playwright test --ui
+npx playwright test --project=chromium
 ```
 
-### `build`
+Playwright writes its HTML report and trace artifacts to `results/e2e/`.
 
-Build your admin panel. [Learn more](https://docs.strapi.io/dev-docs/cli#strapi-build)
+### Summary Document
 
-```
-npm run build
-# or
-yarn build
-```
+`docs/build_strapi_test_summary.py` generates the combined summary doc and markdown source in `results/docs/`.
 
-## Auto translate localized content
-
-This project registers a Strapi v5 Document Service middleware that runs after localized content is created or updated. It translates localized text fields into the other configured i18n locales and copies technical localized values such as URLs, emails, phone numbers, map URLs, dates, and video IDs without translating them.
-
-Configure AI translation in `.env`:
-
-```
-AUTO_TRANSLATE_ENABLED=true
-AUTO_TRANSLATE_PROVIDER=openai
-OPENAI_API_KEY=your-openai-api-key
-OPENAI_TRANSLATE_MODEL=gpt-4.1-mini
+```powershell
+python docs\build_strapi_test_summary.py
 ```
 
-Or use Google Translate:
+Generated files:
 
-```
-AUTO_TRANSLATE_ENABLED=true
-AUTO_TRANSLATE_PROVIDER=google
-GOOGLE_TRANSLATE_API_KEY=your-google-translate-api-key
-```
+- `results/docs/strapi-test-summary.docx`
+- `results/docs/strapi-test-summary.md`
 
-Or use LibreTranslate:
+## Results Folder
 
-```
-AUTO_TRANSLATE_ENABLED=true
-AUTO_TRANSLATE_PROVIDER=libretranslate
-LIBRETRANSLATE_URL=https://your-libretranslate-host
-LIBRETRANSLATE_API_KEY=optional-api-key
-```
+`results/` is treated as generated output and is ignored by git. It is the canonical place for summaries, CSV exports, Playwright artifacts, and the combined report document.
 
-Optionally limit target locales:
+## Environment
 
-```
-AUTO_TRANSLATE_TARGET_LOCALES=en,ja,th
-```
+The project expects Node.js `>=20` and `<=24.x.x`.
 
-By default, Strapi waits for translation to finish before the save request completes. This is more reliable on free deploys. To run translation in the background instead:
+The key Strapi env values come from `.env.example`, including:
 
-```
-AUTO_TRANSLATE_BACKGROUND=true
-```
+- `HOST`
+- `PORT`
+- `APP_KEYS`
+- `API_TOKEN_SALT`
+- `ADMIN_JWT_SECRET`
+- `TRANSFER_TOKEN_SALT`
+- `JWT_SECRET`
+- `ENCRYPTION_KEY`
 
-## ⚙️ Deployment
+## Notes
 
-Strapi gives you many possible deployment options for your project including [Strapi Cloud](https://cloud.strapi.io). Browse the [deployment section of the documentation](https://docs.strapi.io/dev-docs/deployment) to find the best solution for your use case.
-
-```
-yarn strapi deploy
-```
-
-## 📚 Learn more
-
-- [Resource center](https://strapi.io/resource-center) - Strapi resource center.
-- [Strapi documentation](https://docs.strapi.io) - Official Strapi documentation.
-- [Strapi tutorials](https://strapi.io/tutorials) - List of tutorials made by the core team and the community.
-- [Strapi blog](https://strapi.io/blog) - Official Strapi blog containing articles made by the Strapi team and the community.
-- [Changelog](https://strapi.io/changelog) - Find out about the Strapi product updates, new features and general improvements.
-
-Feel free to check out the [Strapi GitHub repository](https://github.com/strapi/strapi). Your feedback and contributions are welcome!
-
-## ✨ Community
-
-- [Discord](https://discord.strapi.io) - Come chat with the Strapi community including the core team.
-- [Forum](https://forum.strapi.io/) - Place to discuss, ask questions and find answers, show your Strapi project and get feedback or just talk with other Community members.
-- [Awesome Strapi](https://github.com/strapi/awesome-strapi) - A curated list of awesome things related to Strapi.
-
----
-
-<sub>🤫 Psst! [Strapi is hiring](https://strapi.io/careers).</sub>
-"# strapi-jpsys" 
+- The content model and the Playwright journeys are intentionally tied to the current code in `src/api` and `e2e-tests/`.
+- If you change content types, update the tests and the summary docs together so the repo stays consistent.

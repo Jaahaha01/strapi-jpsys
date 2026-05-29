@@ -3,7 +3,7 @@
 // โปรเจกต์: strapi-jpsys (Internship Final Project)
 // ============================================================
 
-export const BASE_URL = 'http://localhost:1337';
+export const BASE_URL = __ENV.BASE_URL || 'http://localhost:1337';
 
 // API Token จาก Strapi Admin → Settings → API Tokens
 // สร้าง token ชื่อ "k6-load-test" แบบ Full Access แล้ว paste ที่นี่
@@ -24,8 +24,20 @@ export const THRESHOLDS = {
   // Error rate ต้องต่ำกว่า 5%
   http_req_failed: ['rate<0.05'],
 };
-export const STAGES = [
-  { duration: '10s', target: 20 },  // ramp-up: 20 VUs ใน 10 วินาที
-  { duration: '30s', target: 100 },  // sustain: คงที่ 100 VUs นาน 30 วินาที
-  { duration: '10s', target: 0 },  // ramp-down: 0 VUs ใน 10 วินาที
-];
+
+export const TEST_MODE = (__ENV.TEST_MODE || 'single').toLowerCase();
+export const SCENARIO_VUS = Number(__ENV.SCENARIO_VUS || 10);
+export const SCENARIO_NAME = TEST_MODE === 'stage' ? 'stage' : `${SCENARIO_VUS}vus`;
+
+export const STAGES = TEST_MODE === 'stage'
+  ? [
+      { duration: '1m', target: 10 },
+      { duration: '2m', target: 50 },
+      { duration: '3m', target: 100 },
+      { duration: '1m', target: 0 },
+    ]
+  : [
+  { duration: '10s', target: SCENARIO_VUS },
+  { duration: '1m', target: SCENARIO_VUS },
+  { duration: '10s', target: 0 },
+  ];
