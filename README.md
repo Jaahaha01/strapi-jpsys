@@ -2,12 +2,37 @@
 
 Strapi v5 project for the JpSys internship. This repo serves localized content pages, auto-translates supported fields, and includes dedicated load and end-to-end test suites.
 
-## Quick Start
+## Setup & Quick Start (สำหรับเครื่องใหม่)
 
-1. Copy `.env.example` to `.env` and fill in the secrets you need.
-2. Install dependencies with `npm install`.
-3. Start the local app with `npm run dev`.
-4. Open `http://localhost:1337/admin`.
+เมื่อดาวน์โหลดโค้ดมาจาก GitHub เป็นครั้งแรก สามารถติดตั้งระบบทั้งหมด (Strapi, Playwright, และ k6) ได้ง่ายๆ ด้วยคำสั่งเดียว:
+
+### วิธีที่ 1: ติดตั้งทุกอย่างอัตโนมัติ (แนะนำสำหรับ Windows ✅)
+เปิด PowerShell ในฐานะ Administrator ที่โฟลเดอร์โปรเจกต์นี้ แล้วรันสคริปต์ setup:
+```powershell
+.\setup.ps1
+```
+*สคริปต์นี้จะติดตั้ง **k6**, โหลด **dependencies** ทั้งหมด และดาวน์โหลด **Playwright browsers** ให้เสร็จสรรพในขั้นตอนเดียว! หลังจากรันเสร็จ ให้ปิดและเปิด Terminal หรือ VS Code ใหม่อีกครั้ง*
+
+### วิธีที่ 2: ติดตั้งผ่าน npm (สำหรับผู้ที่มี k6 แล้ว หรือใช้ macOS/Linux)
+```bash
+# 1. ติดตั้ง dependencies และ Playwright browsers
+npm run setup
+
+# 2. ปรับปรุงไฟล์ .env
+cp .env.example .env
+```
+
+---
+
+## Quick Start (ขั้นตอนเริ่มใช้งานปกติ)
+
+1. แก้ไขรายละเอียดคีย์ในไฟล์ `.env`
+2. เริ่มต้นระบบ Strapi:
+   ```bash
+   npm run dev
+   ```
+3. เปิดหน้าจัดการระบบที่ `http://localhost:1337/admin`
+
 
 ## Scripts
 
