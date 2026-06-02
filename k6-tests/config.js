@@ -11,7 +11,7 @@ export const API_TOKEN = __ENV.API_TOKEN || 'ec7a81bc9282fe3f00de7557122821faac5
 
 // Test User สำหรับ POST /api/auth/local
 export const TEST_USER = {
-  identifier: __ENV.TEST_EMAIL || 'jaahaha10@gmail.com',
+  identifier: __ENV.TEST_EMAIL || 'ujubptub@gmail.com',
   password: __ENV.TEST_PASSWORD || 'Jaa02488',
 };
 

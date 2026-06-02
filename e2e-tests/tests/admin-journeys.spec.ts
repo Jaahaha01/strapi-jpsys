@@ -3,7 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 // ============================================================================
 // ตั้งค่า Email & Password สำหรับเข้า Strapi Admin (แก้ให้ตรงกับของคุณ)
 // ============================================================================
-const ADMIN_EMAIL = 'jaahaha10@gmail.com';
+const ADMIN_EMAIL = 'ujubptub@gmail.com';
 const ADMIN_PASSWORD = 'Jaa02488';
 const BASE_URL = 'http://localhost:1337/admin';
 
