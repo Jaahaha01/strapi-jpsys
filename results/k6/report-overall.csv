@@ -1,0 +1,4 @@
+vus,total_requests,requests_per_second,avg_ms,p95_ms,max_ms,http_failed_percent,custom_error_percent,duration_sec,result
+10,1185,14.42,8.08,22.87,32.60,0.00,0.00,82.17,PASS
+50,5870,71.12,10.03,28.96,107.84,0.00,0.00,82.54,PASS
+100,8490,103.01,246.83,540.98,981.74,0.00,0.00,82.42,PASS

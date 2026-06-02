@@ -1,0 +1,1 @@
+import{hn as s,iB as r,fI as i,bo as u}from"./strapi-DGWsfORi.js";const h=({children:t})=>{const o=s("PrivateRoute",a=>a.token),{pathname:e,search:n}=r();return o!==null?t:i.jsx(u,{to:{pathname:"/auth/login",search:e!=="/"?`?redirectTo=${encodeURIComponent(`${e}${n}`)}`:void 0}})};export{h as P};

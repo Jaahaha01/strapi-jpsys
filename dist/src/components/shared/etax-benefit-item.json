@@ -1,0 +1,23 @@
+{
+    "collectionName": "components_shared_etax_benefit_items",
+    "info": {
+        "displayName": "etax-benefit-item"
+    },
+    "options": {},
+    "attributes": {
+        "text": {
+            "type": "string"
+        },
+        "icon": {
+            "type": "media",
+            "multiple": false,
+            "allowedTypes": [
+                "images",
+                "files",
+                "videos",
+                "audios"
+            ]
+        }
+    },
+    "config": {}
+}
