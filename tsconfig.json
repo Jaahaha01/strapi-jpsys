@@ -41,6 +41,8 @@
     // Do not include plugins in the server compilation
     "src/plugins/**",
     // Do not include standalone dev/test scripts
-    "test-webhooks.ts"
+    "test-webhooks.ts",
+    // Do not include e2e-tests (has its own tsconfig and node_modules)
+    "e2e-tests/**"
   ]
 }

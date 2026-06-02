@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // ============================================================================
 // ตั้งค่า Email & Password สำหรับเข้า Strapi Admin (แก้ให้ตรงกับของคุณ)
@@ -11,7 +11,7 @@ test.describe('Strapi Admin User Journeys', () => {
   // รันแบบเรียงลำดับต่อเนื่องกัน เพราะต้องล็อคอินก่อนแล้วค่อยสร้าง แก้ ลบ
   test.describe.configure({ mode: 'serial' });
 
-  let page;
+  let page: Page;
 
   test.beforeAll(async ({ browser }) => {
     // สร้าง page ใหม่ที่จะใช้ร่วมกันตลอดทั้ง 4 journeys
