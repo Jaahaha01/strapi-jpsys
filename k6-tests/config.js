@@ -31,9 +31,9 @@ export const SCENARIO_NAME = TEST_MODE === 'stage' ? 'stage' : `${SCENARIO_VUS}v
 
 export const STAGES = TEST_MODE === 'stage'
   ? [
-      { duration: '1m', target: 10 },
-      { duration: '2m', target: 50 },
-      { duration: '3m', target: 100 },
+      { duration: '30s', target: 10 },
+      { duration: '1m', target: 50 },
+      { duration: '1m30s', target: 100 },
       { duration: '1m', target: 0 },
     ]
   : [

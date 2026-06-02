@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
 // ============================================================================
 // ตั้งค่า Email & Password สำหรับเข้า Strapi Admin (แก้ให้ตรงกับของคุณ)
@@ -12,24 +12,27 @@ test.describe('Strapi Admin User Journeys', () => {
   test.describe.configure({ mode: 'serial' });
 
   let page: Page;
+  let context: BrowserContext;
 
   test.beforeAll(async ({ browser }) => {
-    // สร้าง page ใหม่ที่จะใช้ร่วมกันตลอดทั้ง 4 journeys
-    page = await browser.newPage();
+    // สร้าง context ใหม่แบบ clean (ไม่มี cookie เก่า) เพื่อให้ login page โผล่ถูกต้อง
+    context = await browser.newContext();
+    page = await context.newPage();
   });
 
   test.afterAll(async () => {
-    await page.close();
+    await context.close();
   });
 
   // ============================================================
   // Journey 1: Login เข้า Strapi Admin
   // ============================================================
   test('Journey 1: Login to Strapi Admin', async () => {
-    await page.goto(BASE_URL);
+    // ไปที่หน้า login โดยตรง (ไม่ต้อง redirect จาก /admin)
+    await page.goto(`${BASE_URL}/auth/login`, { waitUntil: 'domcontentloaded' });
 
-    // รอจนกว่าฟอร์ม login จะโผล่
-    await page.waitForSelector('form');
+    // รอให้ React SPA โหลดและ render form (Strapi 5 ใช้ React ใช้เวลานิดหน่อย)
+    await page.waitForSelector('input[name="email"]', { timeout: 30000 });
 
     // กรอกอีเมลและรหัสผ่าน
     await page.fill('input[name="email"]', ADMIN_EMAIL);
@@ -38,11 +41,11 @@ test.describe('Strapi Admin User Journeys', () => {
     // กดปุ่ม Login
     await page.click('button[type="submit"]');
 
-    // ตรวจสอบว่าเข้าหน้า Dashboard สำเร็จโดยดูจาก URL หรือตัวอักษรบนหน้า
-    await expect(page).toHaveURL(/.*\/admin/);
+    // รอ redirect ไปหน้า dashboard หลัง login สำเร็จ
+    await page.waitForURL(/.*\/admin(?!\/auth)/, { timeout: 30000 });
 
     // รอให้เมนูซ้ายมือโหลดเสร็จ (Content Manager)
-    await page.waitForSelector('nav[aria-label="Content-type"]', { timeout: 15000 }).catch(() => { });
+    await page.waitForSelector('nav', { timeout: 20000 }).catch(() => { });
   });
 
   // ============================================================

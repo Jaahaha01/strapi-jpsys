@@ -229,7 +229,7 @@ export function handleSummary(data) {
     }
 
     rows.push([
-      SCENARIO_VUS,
+      SCENARIO_NAME,
       label,
       v.avg  ? v.avg.toFixed(2)  : '-',
       v.min  ? v.min.toFixed(2)  : '-',
@@ -280,3 +280,4 @@ export function handleSummary(data) {
     stdout: summaryText,
   };
 }
+

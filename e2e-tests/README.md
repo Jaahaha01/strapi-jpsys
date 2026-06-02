@@ -18,16 +18,23 @@
 
 ## ⚙️ เตรียมเครื่อง
 
-### ขั้นตอนที่ 1 — เปิด Strapi ก่อน
+### ขั้นตอนที่ 1 — Build และ Start Strapi
+
+> ⚠️ **ต้องใช้ `npm run start` เท่านั้น** (ไม่ใช่ `dev`) เพราะ `dev` มี hot-reload ที่จะ restart Strapi ระหว่าง test ทำให้ test พัง
 
 เปิด **Terminal 1** แล้วรัน:
 
 ```powershell
 cd C:\JapanSys\strapi-jpsys
-npm run dev
+
+# Build admin panel (ครั้งแรก หรือหลังแก้โค้ด)
+npm run build
+
+# Start Strapi แบบ production (ไม่มี hot-reload)
+npm run start
 ```
 
-> รอจนเห็น `Server listening on: http://localhost:1337` แล้วค่อยไปขั้นตอนต่อไป
+> รอจนเห็น `Strapi started successfully` แล้วค่อยไปขั้นตอนต่อไป
 
 ---
 
@@ -43,52 +50,55 @@ npx playwright install
 
 ---
 
-## ▶️ รันเทส
-
-> ⚠️ **สำคัญ:** ใช้ `/` (slash) ไม่ใช่ `\` (backslash) ตอนระบุชื่อไฟล์ เพราะ Playwright อ่าน path แบบ regex
-
-### รันทุกเทส (ทุก Browser)
+### รันทุกเทส (คำสั่งพื้นฐาน)
 
 ```powershell
+# รันทุกไฟล์ทุก browser → 18 tests (admin-journeys 12 + example 6)
 npx playwright test
 ```
-
----
-
-### รันเฉพาะไฟล์ admin-journeys
+### รันเฉพาะไฟล์ admin-journeys (แนะนำ ✅)
 
 ```powershell
-# ✅ แบบที่ถูก — ใช้ slash
-npx playwright test tests/admin-journeys.spec.ts --project=chromium --workers=1
+# 12 tests (4 journeys × 3 browsers)
+npx playwright test tests/admin-journeys.spec.ts
 
-# ✅ หรือระบุแค่ชื่อก็พอ
-npx playwright test admin-journeys --project=chromium --workers=1
+# ระบุแค่ชื่อก็ได้
+npx playwright test admin-journeys
 ```
-
-> `--workers=1` จำเป็นสำหรับ `admin-journeys` เพราะ Journey ต้องรันต่อเนื่องกัน (Login → Create → Edit → Delete)
-
----
 
 ### รันแบบ Headed (เห็นหน้าต่าง Browser)
 
 ```powershell
-npx playwright test admin-journeys --project=chromium --workers=1 --headed
+npx playwright test admin-journeys --headed
 ```
 
----
+### รันแบบ Headed เฉพาะ Browser เดียว (เร็ว + ดู debug ง่าย)
 
+```powershell
+# เปิดหน้าต่าง Chromium ให้ดูเห็นจริงๆ ว่า test กดอะไร ไปหน้าไหน — 4 tests
+npx playwright test admin-journeys --project=chromium --headed
+```
+
+> 💡 เหมาะสำหรับ debug: เห็น browser เปิดขึ้นมาจริง กรอก login กดปุ่ม สร้างข้อมูล ลบข้อมูล ต่อหน้าต่อตา
 ### รันเฉพาะ Browser ใดบราวเซอร์หนึ่ง
 
 ```powershell
-# Chromium เท่านั้น (แนะนำ — เร็วที่สุด)
-npx playwright test --project=chromium
+# Chromium — 4 tests
+npx playwright test admin-journeys --project=chromium
 
-# Firefox
-npx playwright test --project=firefox
+# Firefox — 4 tests
+npx playwright test admin-journeys --project=firefox
 
-# Safari (WebKit)
-npx playwright test --project=webkit
+# WebKit (Safari) — 4 tests
+npx playwright test admin-journeys --project=webkit
 ```
+
+> **สรุปจำนวน test:**
+> | คำสั่ง | จำนวน |
+> |---|---|
+> | `npx playwright test` | 18 (ทุกไฟล์ × 3 browsers) |
+> | `npx playwright test admin-journeys` | 12 (4 journeys × 3 browsers) |
+> | `npx playwright test admin-journeys --project=chromium` | 4 |
 
 ---
 
@@ -129,14 +139,14 @@ const ADMIN_PASSWORD = 'your_password';
 # Windows PowerShell
 $env:ADMIN_EMAIL    = "your@email.com"
 $env:ADMIN_PASSWORD = "your_password"
-npx playwright test admin-journeys --project=chromium --workers=1
+npx playwright test admin-journeys
 ```
 
 ```cmd
 :: Windows CMD
 set ADMIN_EMAIL=your@email.com
 set ADMIN_PASSWORD=your_password
-npx playwright test admin-journeys --project=chromium --workers=1
+npx playwright test admin-journeys
 ```
 
 ---
@@ -167,9 +177,10 @@ results/e2e/
 
 | สถานการณ์ | วิธีแก้ |
 |---|---|
-| เทสแดงทั้งหมด | ตรวจสอบว่า Strapi รันอยู่ที่ `http://localhost:1337` |
+| `ERR_CONNECTION_REFUSED` | ยังไม่ได้ `npm run start` |
+| Admin 404 / Page ว่าง | ยังไม่ได้ `npm run build` ก่อน start |
+| Strapi restart ระหว่าง test | ใช้ `npm run start` ไม่ใช่ `dev` |
 | "No tests found" | ใช้ `/` แทน `\` ในชื่อไฟล์ |
 | เทส flaky / ไม่แน่นอน | เพิ่ม `--headed` เพื่อดูว่า browser ทำอะไร |
 | Port 9323 ถูกใช้ | เพิ่ม `--port 9324` ตอน show-report |
-| รัน serial ไม่ได้ | ใส่ `--workers=1` เสมอสำหรับ admin-journeys |
 | Browser ไม่ถูกติดตั้ง | รัน `npx playwright install` อีกครั้ง |
