@@ -61,18 +61,24 @@ k6 run --env TEST_MODE=stage k6-tests/load-test.js
 
 ---
 
-## 📊 สร้าง Report
+## 📊 สร้าง Report (วิธีสร้างไฟล์รายงาน)
 
-หลังรัน k6 ครบแล้ว (10, 50, 100 VU) สร้าง summary report:
+ไฟล์รายงานทั้งหมด (รวมถึง CSV และ Markdown สรุปผล) จะเกิดขึ้นเมื่อคุณรันคำสั่ง:
 
 ```powershell
 node k6-tests/build-report.mjs
 ```
 
-ได้ไฟล์:
-- `results/k6/LOAD_TEST_SUMMARY.md` — สรุปตาราง Markdown
-- `results/k6/report-endpoints.csv` — CSV แยกรายละเอียดแต่ละ endpoint
-- `results/k6/report-overall.csv` — CSV สรุปรวมต่อ VU level
+> [!IMPORTANT]
+> **เงื่อนไขสำคัญในการรันคำสั่งสร้าง Report:**
+> 1. **ต้องรัน Full Test (10, 50, 100 VUs) ให้ครบก่อนอย่างน้อยรอบละ 1 ครั้ง** เพื่อให้มีไฟล์ JSON ผลลัพธ์ครบทั้ง 3 ชุด หากรันไม่ครบ สคริปต์สร้าง Report จะแจ้ง Error หาไฟล์ไม่พบ
+> 2. **หากต้องการให้มีไฟล์ `LOAD_TEST_STAGE_SUMMARY.md`** คุณต้องรัน **Stage test** ด้วยก่อนที่จะกดรันคำสั่งสร้าง Report
+
+### สรุปไฟล์ที่จะได้รับหลังรัน `build-report.mjs`:
+- `results/k6/report-endpoints.csv` — CSV แยกรายละเอียดความเร็วราย Endpoint
+- `results/k6/report-overall.csv` — CSV สรุปรวมเปรียบเทียบในแต่ละ VU Level
+- `results/k6/LOAD_TEST_SUMMARY.md` — รายงานสรุปผลภาพรวมในรูปแบบ Markdown
+- `results/k6/LOAD_TEST_STAGE_SUMMARY.md` — *(จะมีเมื่อรัน Stage test ก่อนสร้าง report เท่านั้น)* สรุปผลการรันแบบไต่ระดับ VUs
 
 ---
 

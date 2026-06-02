@@ -29,10 +29,9 @@ Strapi v5 project for the JpSys internship. This repo serves localized content p
 | `src/` | App code, content types, bootstrap logic, and utilities. |
 | `config/` | Strapi runtime configuration. |
 | `database/` | Database-related configuration and generated data. |
-| `docs/` | Report generation scripts and source docs. |
 | `e2e-tests/` | Playwright test project. |
 | `k6-tests/` | k6 load test project and report generator. |
-| `results/` | Generated outputs for docs, k6, and Playwright. Ignored by git. |
+| `results/` | Generated outputs for k6 and Playwright. Ignored by git. |
 | `public/` | Public assets served by Strapi. |
 | `dist/` | Build output. |
 
@@ -109,98 +108,72 @@ Note: the current runtime code does not use `OPENAI_API_KEY`.
 ### k6 Load Testing
 
 The k6 suite lives in `k6-tests/` and supports two modes:
+- **Single Mode (Default):** Runs separate runs for `10`, `50`, and `100` VU comparisons.
+- **Stage Mode:** Runs a ramp profile from `0 -> 10 -> 50 -> 100 -> 0` VUs.
 
-- `TEST_MODE=single` for separate `10`, `50`, and `100` VU comparisons
-- `TEST_MODE=stage` for a ramp profile from `0 -> 10 -> 50 -> 100 -> 0`
-
-Common commands:
+Common commands (Run from the root directory):
 
 ```powershell
-k6 run --env TEST_MODE=single --env SCENARIO_VUS=10 k6-tests/load-test.js
-k6 run --env TEST_MODE=single --env SCENARIO_VUS=50 k6-tests/load-test.js
-k6 run --env TEST_MODE=single --env SCENARIO_VUS=100 k6-tests/load-test.js
+# 1. Run standard VU comparison tests
+k6 run --env SCENARIO_VUS=10  k6-tests/load-test.js
+k6 run --env SCENARIO_VUS=50  k6-tests/load-test.js
+k6 run --env SCENARIO_VUS=100 k6-tests/load-test.js
+
+# 2. (Optional) Run stage test
 k6 run --env TEST_MODE=stage k6-tests/load-test.js
+
+# 3. Generate summary reports
 node k6-tests/build-report.mjs
 ```
 
 Relevant env vars:
-
-- `BASE_URL`
-- `API_TOKEN`
-- `TEST_EMAIL`
-- `TEST_PASSWORD`
-- `TEST_MODE`
-- `SCENARIO_VUS`
+- `BASE_URL`, `API_TOKEN`, `TEST_EMAIL`, `TEST_PASSWORD`, `TEST_MODE`, `SCENARIO_VUS`
 
 Outputs are written to `results/k6/`, including:
-
-- `report-overall.csv`
-- `report-endpoints.csv`
-- `LOAD_TEST_SUMMARY.md`
-- `LOAD_TEST_STAGE_SUMMARY.md`
-- `results-*.csv`
-- `results-*-summary.json`
+- `report-overall.csv` & `report-endpoints.csv`
+- `LOAD_TEST_SUMMARY.md` & `LOAD_TEST_STAGE_SUMMARY.md`
+- `results-*.csv` & `results-*-summary.json`
 
 ### Playwright E2E
 
 The Playwright project lives in `e2e-tests/`.
 
-Configured browser projects:
+Configured browser projects: Chromium, Firefox, WebKit.
 
-- Chromium
-- Firefox
-- WebKit
-
-Run it from the project folder:
+Common commands (Run from the `e2e-tests` directory):
 
 ```powershell
 cd e2e-tests
+
+# Run only the core admin journey tests in Chromium, in headed mode (Recommended ✅)
+npx playwright test admin-journeys --project=chromium --headed
+
+# Run all tests on all browsers (headless)
 npx playwright test
-```
 
-Useful variations:
-
-```powershell
-cd e2e-tests
+# Run Playwright UI mode
 npx playwright test --ui
-npx playwright test --project=chromium
 ```
+
+> 💡 **Command Explanation:**
+> * `admin-journeys` targets the core flow test (`admin-journeys.spec.ts`) which validates standard operations like login, creation, editing, and deletion.
+> * `--project=chromium` limits execution to Chromium to save time and resources.
+> * `--headed` launches the visual browser window so you can watch the test interact with the Strapi admin panel in real-time.
 
 Playwright writes its HTML report and trace artifacts to `results/e2e/`.
 
-### Summary Document
-
-`docs/build_strapi_test_summary.py` generates the combined summary doc and markdown source in `results/docs/`.
-
-```powershell
-python docs\build_strapi_test_summary.py
-```
-
-Generated files:
-
-- `results/docs/strapi-test-summary.docx`
-- `results/docs/strapi-test-summary.md`
-
 ## Results Folder
 
-`results/` is treated as generated output and is ignored by git. It is the canonical place for summaries, CSV exports, Playwright artifacts, and the combined report document.
+`results/` is treated as generated output and is ignored by git. It contains the generated CSV exports, Markdown summaries, and Playwright HTML reports/traces.
 
 ## Environment
 
 The project expects Node.js `>=20` and `<=24.x.x`.
 
 The key Strapi env values come from `.env.example`, including:
-
-- `HOST`
-- `PORT`
-- `APP_KEYS`
-- `API_TOKEN_SALT`
-- `ADMIN_JWT_SECRET`
-- `TRANSFER_TOKEN_SALT`
-- `JWT_SECRET`
-- `ENCRYPTION_KEY`
+- `HOST`, `PORT`, `APP_KEYS`, `API_TOKEN_SALT`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT`, `JWT_SECRET`, `ENCRYPTION_KEY`
 
 ## Notes
 
 - The content model and the Playwright journeys are intentionally tied to the current code in `src/api` and `e2e-tests/`.
-- If you change content types, update the tests and the summary docs together so the repo stays consistent.
+- If you change content types, update the tests together so the repository stays consistent.
