@@ -248,6 +248,22 @@ ${stageEndpointRows.map((row) => `| ${row.method} | \`${row.endpoint}\` | ${fixe
 
 ${stageAllPassed ? '🎉 **All SLA thresholds passed!** The system successfully handled the ramping load profile up to 100 VUs while maintaining response times and error rates within acceptable boundaries.' : '⚠️ **SLA thresholds exceeded!** At least one metric or endpoint failed the performance criteria under the ramping load. Optimization of database queries or write locking is recommended.'}
 `;
+  const stageOverallCsv = [
+    'total_requests,requests_per_second,avg_ms,p95_ms,max_ms,http_failed_percent,custom_error_percent,duration_sec,result',
+    [
+      stageMetrics.http_reqs?.values?.count || 0,
+      fixed(stageMetrics.http_reqs?.values?.rate || 0),
+      fixed(stageMetrics.http_req_duration?.values?.avg || 0),
+      fixed(stageMetrics.http_req_duration?.values?.['p(95)'] || 0),
+      fixed(stageMetrics.http_req_duration?.values?.max || 0),
+      fixed((stageMetrics.http_req_failed?.values?.rate || 0) * 100),
+      fixed((stageMetrics.errors?.values?.rate || 0) * 100),
+      fixed(stageDurationSec),
+      stageAllPassed ? 'PASS' : 'REVIEW'
+    ].join(',')
+  ].join('\n');
+
+  fs.writeFileSync(path.join(OUT_DIR, 'report-stage-overall.csv'), stageOverallCsv);
   fs.writeFileSync(path.join(OUT_DIR, 'LOAD_TEST_STAGE_SUMMARY.md'), stageMarkdown);
 }
 
@@ -257,4 +273,5 @@ console.log('results/k6/report-overall.csv');
 console.log('results/k6/LOAD_TEST_SUMMARY.md');
 if (stageSummary) {
   console.log('results/k6/LOAD_TEST_STAGE_SUMMARY.md');
+  console.log('results/k6/report-stage-overall.csv');
 }

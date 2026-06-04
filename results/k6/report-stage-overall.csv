@@ -1,0 +1,2 @@
+total_requests,requests_per_second,avg_ms,p95_ms,max_ms,http_failed_percent,custom_error_percent,duration_sec,result
+18340,75.78,43.87,185.59,446.06,0.00,0.00,242.03,PASS
