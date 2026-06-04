@@ -180,20 +180,73 @@ fs.writeFileSync(path.join(OUT_DIR, 'LOAD_TEST_SUMMARY.md'), markdown);
 const stageSummary = readStageSummary();
 if (stageSummary) {
   const stageMetrics = stageSummary.metrics;
+  const stageDurationSec = (stageSummary.state.testRunDurationMs || 0) / 1000;
+  
+  const stageEndpointRows = [];
+  for (const item of endpoints) {
+    const metric = stageMetrics[item.metric];
+    const check = groupCheck(stageSummary, item.group);
+    
+    let thresholdOk = true;
+    if (metric && metric.thresholds) {
+      for (const tKey of Object.keys(metric.thresholds)) {
+        if (!metric.thresholds[tKey].ok) {
+          thresholdOk = false;
+        }
+      }
+    }
+
+    stageEndpointRows.push({
+      method: item.method,
+      endpoint: item.endpoint,
+      avgMs: value(metric, 'avg'),
+      minMs: value(metric, 'min'),
+      medMs: value(metric, 'med'),
+      p90Ms: value(metric, 'p(90)'),
+      p95Ms: value(metric, 'p(95)'),
+      maxMs: value(metric, 'max'),
+      requests: check.requests,
+      failures: check.failures,
+      thresholdOk,
+    });
+  }
+
+  const stageAllPassed = stageEndpointRows.every(r => r.thresholdOk) && 
+    (stageMetrics.http_req_duration?.thresholds?.['p(95)<2000']?.ok !== false) &&
+    (stageMetrics.http_req_failed?.thresholds?.['rate<0.05']?.ok !== false);
+
   const stageMarkdown = `# k6 Stage Load Test Summary
 
 Test target: Strapi API at \`http://localhost:1337\`
 
-Load profile:
-- 1m ramp from 0 to 10 VUs
-- 2m ramp from 10 to 50 VUs
-- 3m ramp from 50 to 100 VUs
-- 1m ramp down from 100 to 0 VUs
+## Load Profile (Ramping VUs)
+- **0 ➔ 10 VUs** in 30s
+- **10 ➔ 50 VUs** in 1m
+- **50 ➔ 100 VUs** in 1m 30s
+- **100 ➔ 0 VUs** in 1m
+- **Total Test Duration:** ${fixed(stageDurationSec)} seconds
 
-Total requests: ${stageMetrics.http_reqs?.values?.count || 0}
-Average duration: ${(stageMetrics.http_req_duration?.values?.avg || 0).toFixed(2)} ms
-p95 duration: ${(stageMetrics.http_req_duration?.values?.['p(95)'] || 0).toFixed(2)} ms
-Error rate: ${(((stageMetrics.errors?.values?.rate || 0) * 100).toFixed(2))} %
+## Overall Results
+
+| Metric | Value | Threshold / SLA | Status |
+| :--- | :---: | :---: | :---: |
+| **Total Requests** | ${stageMetrics.http_reqs?.values?.count || 0} | - | - |
+| **Throughput (Req/s)** | ${fixed(stageMetrics.http_reqs?.values?.rate || 0)} req/s | - | - |
+| **Average Response Time** | ${fixed(stageMetrics.http_req_duration?.values?.avg || 0)} ms | - | - |
+| **p95 Response Time** | ${fixed(stageMetrics.http_req_duration?.values?.['p(95)'] || 0)} ms | < 2000 ms | ${stageMetrics.http_req_duration?.thresholds?.['p(95)<2000']?.ok ? '✅ PASS' : '❌ FAIL'} |
+| **Max Response Time** | ${fixed(stageMetrics.http_req_duration?.values?.max || 0)} ms | - | - |
+| **HTTP Failure Rate** | ${fixed((stageMetrics.http_req_failed?.values?.rate || 0) * 100)} % | < 5.00 % | ${stageMetrics.http_req_failed?.thresholds?.['rate<0.05']?.ok ? '✅ PASS' : '❌ FAIL'} |
+| **Custom Error Rate** | ${fixed((stageMetrics.errors?.values?.rate || 0) * 100)} % | - | - |
+
+## Endpoint Breakdown
+
+| Method | Endpoint | Avg (ms) | p95 (ms) | Max (ms) | Requests | Failures | Status |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: | :---: |
+${stageEndpointRows.map((row) => `| ${row.method} | \`${row.endpoint}\` | ${fixed(row.avgMs)} | ${fixed(row.p95Ms)} | ${fixed(row.maxMs)} | ${row.requests} | ${row.failures} | ${row.thresholdOk ? '✅ PASS' : '❌ FAIL'}`).join('\n')}
+
+## Summary Recommendation
+
+${stageAllPassed ? '🎉 **All SLA thresholds passed!** The system successfully handled the ramping load profile up to 100 VUs while maintaining response times and error rates within acceptable boundaries.' : '⚠️ **SLA thresholds exceeded!** At least one metric or endpoint failed the performance criteria under the ramping load. Optimization of database queries or write locking is recommended.'}
 `;
   fs.writeFileSync(path.join(OUT_DIR, 'LOAD_TEST_STAGE_SUMMARY.md'), stageMarkdown);
 }

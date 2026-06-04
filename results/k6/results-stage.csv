@@ -1,6 +1,6 @@
 VUs,Endpoint,Avg (ms),Min (ms),Med (ms),p90 (ms),p95 (ms),Max (ms),Requests,Failures
-stage,GET /api/company,106.01,2.68,33.64,320.46,365.33,731.57,3400,0
-stage,GET /api/marketing,89.69,3.03,35.13,258.36,319.29,582.31,3400,0
-stage,GET /api/new-release,92.27,3.07,22.51,305.18,356.71,533.13,3400,0
-stage,PUT /api/company,121.28,17.19,52.93,331.54,416.62,627.22,3400,0
-stage,POST /api/auth/local,69.36,0.67,6.57,247.78,321.07,518.88,3400,0
+stage,GET /api/company,46.07,0.73,13.83,141.72,190.06,437.54,3668,0
+stage,GET /api/marketing,47.46,0.41,16.45,145.02,200.89,398.12,3668,0
+stage,GET /api/new-release,27.83,0.51,6.22,78.39,138.04,446.06,3668,0
+stage,PUT /api/company,62.00,12.25,31.92,153.11,200.10,445.85,3668,0
+stage,POST /api/auth/local,35.99,0.51,2.86,130.12,184.65,431.94,3668,0
