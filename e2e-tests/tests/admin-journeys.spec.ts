@@ -59,14 +59,25 @@ test.describe('Strapi Admin User Journeys', () => {
     // รอให้หน้าต่างโหลดเสร็จจริงๆ (รอ Network นิ่ง) จะได้ชัวร์ว่า Modal โหลดเสร็จถ้ามันจะเด้ง
     await page.waitForLoadState('networkidle');
 
-    // ดักจับและปิด Popup แนะนำวิธีใช้ (Onboarding/Tour) ที่อาจจะโผล่มาช้า
+    // ดักจับและปิด Popup แนะนำวิธีใช้ (Onboarding/Tour) หรือ Welcome Trial Modal ที่อาจจะโผล่มาช้าและบังหน้าจอ
     try {
       const skipButton = page.getByRole('button', { name: 'Skip' });
-      await skipButton.waitFor({ state: 'visible', timeout: 3000 }); // รอสูงสุด 3 วิ
-      await skipButton.click();
-      await skipButton.waitFor({ state: 'hidden' });
+      const trialButton = page.getByRole('button', { name: /start exploring|close/i });
+
+      // ตรวจสอบและรอตัวใดตัวหนึ่งโผล่ขึ้นมาด้วย locator.or()
+      await skipButton.or(trialButton).waitFor({ state: 'visible', timeout: 5000 });
+
+      if (await skipButton.isVisible()) {
+        await skipButton.click();
+        await skipButton.waitFor({ state: 'hidden' }).catch(() => { });
+      }
+
+      if (await trialButton.first().isVisible()) {
+        await trialButton.first().click();
+        await trialButton.first().waitFor({ state: 'hidden' }).catch(() => { });
+      }
     } catch (e) {
-      // ถ้าไม่โผล่มาใน 3 วิ ก็ถือว่าไม่มี popup
+      // ไม่มี popup โผล่มาเลยภายใน 5 วินาที หรือเกิดความผิดพลาด ให้รันต่อไป
     }
 
     // กดปุ่ม "Create new entry"
@@ -121,16 +132,16 @@ test.describe('Strapi Admin User Journeys', () => {
 
     // คลิก Checkbox ตัวแรก (ข้ามอันแรกสุดที่เป็นของ Header) เพื่อให้แถบ Bulk action โผล่
     const firstCheckbox = page.getByRole('checkbox').nth(1);
-    
+
     if (await firstCheckbox.isVisible()) {
       await firstCheckbox.click({ force: true });
-      
+
       // พอกด checkbox จะมีปุ่ม Delete โผล่ขึ้นมาข้างบนตาราง
       await page.getByRole('button', { name: /delete/i }).click();
-      
+
       // จะมี Modal ถามยืนยันการลบ
       await page.getByRole('button', { name: /confirm/i }).click();
-      
+
       // รอจนกว่าจะลบเสร็จ
       await page.waitForTimeout(2000);
     }

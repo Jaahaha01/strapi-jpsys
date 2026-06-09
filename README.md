@@ -232,11 +232,6 @@ k6 run --env SCENARIO_VUS=100 k6-tests/load-test.js
 ```
 
 ```powershell
-# Smoke test (ลองเร็วๆ 1 VU)
-k6 run --vus 1 --duration 15s k6-tests/load-test.js
-```
-
-```powershell
 # Stage test (ไต่ขั้นอัตโนมัติ 0→10→50→100→0)
 k6 run --env TEST_MODE=stage k6-tests/load-test.js
 ```

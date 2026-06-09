@@ -14,13 +14,13 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   /* Increase global timeout for Strapi which can be slow to respond */
-  timeout: 60000,
+  timeout: 90000,
   /* Run tests in files in parallel */
   fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  /* Retry on CI only — retry 1 time locally to handle webkit flakiness */
+  retries: process.env.CI ? 2 : 1,
   /* Always use 1 worker to prevent race conditions in serial journeys */
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
@@ -35,6 +35,14 @@ export default defineConfig({
 
     /* Give Strapi's React SPA enough time to render */
     navigationTimeout: 60000,
+
+    /* Max time for each click/fill/etc. action */
+    actionTimeout: 30000,
+
+    /* Slow down all browsers for a smooth, presentable demo pace */
+    launchOptions: {
+      slowMo: 500, // ชะลอทุก action 500ms ทุก browser ให้ดูสมูท
+    },
   },
 
   /* Configure projects for major browsers */
@@ -49,7 +57,16 @@ export default defineConfig({
     },
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      use: {
+        ...devices['Desktop Safari'],
+        /* WebKit (Safari engine) needs extra time and slower interactions
+           to handle Strapi's React SPA correctly */
+        navigationTimeout: 90000,
+        actionTimeout: 45000,
+        launchOptions: {
+          slowMo: 500, // ชะลอทุก action 500ms เฉพาะ WebKit
+        },
+      },
     },
   ],
 

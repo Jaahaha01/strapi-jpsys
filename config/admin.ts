@@ -15,6 +15,9 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Admin => 
   secrets: {
     encryptionKey: env('ENCRYPTION_KEY'),
   },
+  rateLimit: {
+    enabled: false,
+  },
   flags: {
     nps: env.bool('FLAG_NPS', false),
     promoteEE: env.bool('FLAG_PROMOTE_EE', false),

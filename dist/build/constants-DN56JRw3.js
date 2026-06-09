@@ -1,0 +1,1 @@
+import{e5 as r,eb as n,es as a,e6 as e}from"./strapi-D9Dpk-kw.js";const o="api-token",t="transfer-token",i=r().shape({name:e().max(100).required(a.required.id),type:e().oneOf(["read-only","full-access","custom"]).optional(),description:e().nullable(),lifespan:n().integer().min(0).nullable().defined(a.required.id)});export{o as A,t as T,i as a};
