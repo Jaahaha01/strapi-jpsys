@@ -1,6 +1,6 @@
 VUs,Endpoint,Avg (ms),Min (ms),Med (ms),p90 (ms),p95 (ms),Max (ms),Requests,Failures
-10vus,GET /api/company,5.12,0.78,4.84,5.85,6.32,37.75,237,0
-10vus,GET /api/marketing,5.69,0.70,5.48,6.58,7.41,19.73,237,0
-10vus,GET /api/new-release,5.38,0.77,5.16,6.61,7.14,10.34,237,0
-10vus,PUT /api/company,21.34,11.87,20.95,23.85,25.34,56.39,237,0
-10vus,POST /api/auth/local,2.67,0.51,2.68,3.17,3.49,6.38,237,0
+10vus,GET /api/company,6.19,4.46,5.89,7.53,7.99,13.46,236,0
+10vus,GET /api/marketing,7.01,4.52,6.66,8.62,9.89,22.08,236,0
+10vus,GET /api/new-release,6.79,3.89,6.25,8.40,10.42,33.65,236,0
+10vus,PUT /api/company,25.49,19.84,24.93,28.45,30.34,54.56,236,0
+10vus,POST /api/auth/local,3.27,1.78,3.08,3.93,4.55,11.63,236,0

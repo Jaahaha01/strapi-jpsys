@@ -396,13 +396,30 @@ npx playwright test admin-journeys
 | `AUTO_TRANSLATE_BACKGROUND` | แปลแบบ async (`true`/`false`) |
 | `DEEPL_API_KEY` | DeepL API key |
 
-### Webhook
+### Webhook (Next.js Cache Revalidation)
+
+Strapi จะ POST ไปหา Next.js frontend โดยอัตโนมัติทุกครั้งที่มีการ publish/unpublish/ลบ content
+ซึ่งจะ trigger ให้ Next.js clear ISR cache และ fetch ข้อมูลใหม่จาก Strapi
+
+Webhook ถูกสร้างอัตโนมัติตอน **bootstrap** (Strapi start ครั้งแรก) จาก env ด้านล่าง —
+**ไม่ต้องตั้งค่าใน Strapi Admin Panel เอง**
 
 | Variable | Purpose |
 | --- | --- |
-| `FRONTEND_WEBHOOK_URL` | URL ที่ Strapi จะ POST ไปเมื่อเนื้อหาเปลี่ยน |
-| `FRONTEND_WEBHOOK_SECRET` | Bearer token สำหรับ webhook |
-| `FRONTEND_WEBHOOK_NAME` | ชื่อ webhook (default: `Nextjs Clear Cache`) |
+| `FRONTEND_WEBHOOK_URL` | URL ที่ Strapi จะ POST ไปเมื่อเนื้อหาเปลี่ยน เช่น `https://example.com/api/revalidate?secret=xxx` |
+| `FRONTEND_WEBHOOK_SECRET` | Bearer token สำหรับ authenticate webhook (ต้องตรงกับ Next.js ฝั่ง frontend) |
+| `FRONTEND_WEBHOOK_NAME` | ชื่อ webhook ที่แสดงใน Strapi Admin (default: `Nextjs Clear Cache`) |
+
+**ตัวอย่างใน `.env`:**
+
+```env
+FRONTEND_WEBHOOK_NAME=Nextjs Clear Cache
+FRONTEND_WEBHOOK_URL=https://jpsystem.vercel.app/api/revalidate?secret=your-secret-here
+FRONTEND_WEBHOOK_SECRET=your-secret-here
+```
+
+> ⚠️ ถ้าเปลี่ยน domain / deploy ที่ใหม่ ให้แก้ `FRONTEND_WEBHOOK_URL` แล้ว **restart Strapi**
+> webhook จะ skip การสร้างใหม่ถ้า URL เดิมมีอยู่แล้ว
 
 ### k6 Load Test
 
